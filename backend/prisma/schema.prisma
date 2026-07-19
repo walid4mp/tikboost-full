@@ -1,0 +1,287 @@
+// Prisma schema for TikBoost - PostgreSQL
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ================= USERS =================
+enum UserRole {
+  USER
+  ADMIN
+  SUPER_ADMIN
+  MODERATOR
+  FINANCE
+}
+
+enum UserStatus {
+  ACTIVE
+  FROZEN
+  BANNED
+}
+
+model User {
+  id            String     @id @default(uuid())
+  email         String     @unique
+  password      String
+  name          String
+  role          UserRole   @default(USER)
+  status        UserStatus @default(ACTIVE)
+  freezeUntil   DateTime?
+  banReason     String?
+  avatarUrl     String?
+  points        BigInt     @default(0)
+  totalEarned   BigInt     @default(0)
+  totalSpent    BigInt     @default(0)
+  referralCode  String     @unique
+  referredById  String?
+  referredBy    User?      @relation("Referrals", fields: [referredById], references: [id])
+  referrals     User[]     @relation("Referrals")
+  deviceId      String?    @unique
+  lastIp        String?
+  lastLoginAt   DateTime?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  campaigns     Campaign[]      @relation("CampaignOwner")
+  tasks         Task[]          @relation("TaskExecutor")
+  purchases     Purchase[]
+  pointLogs     PointLog[]
+  notifications Notification[]
+  reportsMade   Report[]        @relation("Reporter")
+  reportsAgainst Report[]       @relation("Reported")
+  logs          AdminLog[]      @relation("LogActor")
+  spinLogs      SpinLog[]
+  refreshTokens RefreshToken[]
+
+  @@index([email])
+  @@index([referralCode])
+  @@index([status])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  revoked   Boolean  @default(false)
+
+  @@index([userId])
+}
+
+// ================= CAMPAIGNS =================
+enum CampaignType {
+  FOLLOWERS
+  LIKES
+  VIEWS
+  COMMENTS
+}
+
+enum CampaignStatus {
+  PENDING
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+model Campaign {
+  id           String         @id @default(uuid())
+  ownerId      String
+  owner        User           @relation("CampaignOwner", fields: [ownerId], references: [id])
+  type         CampaignType
+  status       CampaignStatus @default(ACTIVE)
+  targetUrl    String
+  targetUsername String
+  quantity     Int
+  completed    Int            @default(0)
+  pointsCost   BigInt
+  perTaskReward BigInt
+  proofUrl     String?
+  description  String?
+  pausedAt     DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  tasks        Task[]
+
+  @@index([ownerId])
+  @@index([type, status])
+  @@index([status])
+}
+
+// ================= TASKS =================
+// One Task = one execution by a user of one campaign
+model Task {
+  id           String   @id @default(uuid())
+  campaignId   String
+  campaign     Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  executorId   String
+  executor     User     @relation("TaskExecutor", fields: [executorId], references: [id])
+  rewardPoints BigInt
+  status       String   @default("PENDING") // PENDING -> VERIFIED -> REJECTED
+  verifiedAt   DateTime?
+  ip           String?
+  deviceFingerprint String?
+  createdAt    DateTime @default(now())
+
+  // Anti-abuse: one executor per campaign (DB-enforced)
+  @@unique([campaignId, executorId])
+  @@index([executorId])
+  @@index([campaignId, status])
+}
+
+// ================= PACKAGES / PURCHASES =================
+model PointPackage {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  priceCents  Int
+  currency    String   @default("USD")
+  points      BigInt
+  bonusPoints BigInt   @default(0)
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  purchases   Purchase[]
+}
+
+enum PurchaseStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REFUNDED
+}
+
+model Purchase {
+  id          String         @id @default(uuid())
+  userId      String
+  user        User           @relation(fields: [userId], references: [id])
+  packageId   String
+  package     PointPackage   @relation(fields: [packageId], references: [id])
+  pointsGiven BigInt
+  priceCents  Int
+  currency    String
+  method      String         // manual_transfer, stripe, paypal, etc
+  reference   String?        // tx id from payment provider
+  status      PurchaseStatus @default(PENDING)
+  approvedById String?
+  approvedAt  DateTime?
+  notes       String?
+  createdAt   DateTime       @default(now())
+
+  @@index([userId])
+  @@index([status])
+}
+
+// ================= POINT LEDGER =================
+enum PointReason {
+  TASK_REWARD
+  CAMPAIGN_SPEND
+  PURCHASE
+  ADMIN_GRANT
+  ADMIN_DEDUCT
+  REFERRAL_BONUS
+  SPIN_REWARD
+  REFUND
+  SIGNUP_BONUS
+}
+
+model PointLog {
+  id        String      @id @default(uuid())
+  userId    String
+  user      User        @relation(fields: [userId], references: [id])
+  delta     BigInt      // can be negative
+  reason    PointReason
+  balanceAfter BigInt
+  refType   String?     // e.g. "Task", "Campaign"
+  refId     String?
+  note      String?
+  createdAt DateTime    @default(now())
+
+  @@index([userId, createdAt])
+  @@index([reason])
+}
+
+// ================= NOTIFICATIONS =================
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String?  // null = broadcast
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  body      String
+  type      String   @default("info") // info, success, warning, reward
+  data      Json?
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId, readAt])
+}
+
+// ================= REPORTS =================
+enum ReportStatus {
+  OPEN
+  REVIEWED
+  DISMISSED
+}
+
+model Report {
+  id          String       @id @default(uuid())
+  reporterId  String
+  reporter    User         @relation("Reporter", fields: [reporterId], references: [id])
+  reportedId  String
+  reported    User         @relation("Reported", fields: [reportedId], references: [id])
+  targetType  String       // user, campaign, task
+  targetId    String
+  reason      String
+  description String?
+  status      ReportStatus @default(OPEN)
+  resolvedById String?
+  createdAt   DateTime     @default(now())
+  resolvedAt  DateTime?
+
+  @@index([status, createdAt])
+}
+
+// ================= ADMIN LOGS =================
+model AdminLog {
+  id        String   @id @default(uuid())
+  actorId   String
+  actor     User     @relation("LogActor", fields: [actorId], references: [id])
+  action    String
+  target    String?
+  details   Json?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([actorId, createdAt])
+}
+
+// ================= LUCKY WHEEL =================
+model WheelPrize {
+  id        String   @id @default(uuid())
+  label     String
+  points    BigInt
+  weight    Int      @default(10)  // probability weight
+  color     String   @default("#ff3b5c")
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  spinLogs  SpinLog[]
+}
+
+model SpinLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  prizeId   String
+  prize     WheelPrize @relation(fields: [prizeId], references: [id])
+  points    BigInt
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}

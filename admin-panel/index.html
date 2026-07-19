@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TikBoost — Admin Panel</title>
+  <link rel="stylesheet" href="css/admin.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <!-- Login -->
+  <div id="loginPage" class="login-wrap">
+    <form id="loginForm" class="login-card">
+      <div class="brand">
+        <div class="brand-logo">T</div>
+        <h1>TikBoost <span>Admin</span></h1>
+      </div>
+      <p class="muted">لوحة إدارة متكاملة — إدارة المستخدمين، الحملات، النقاط، المدفوعات والإحصائيات.</p>
+      <label>البريد الإلكتروني</label>
+      <input id="loginEmail" type="email" required placeholder="admin@tikboost.app" />
+      <label>كلمة المرور</label>
+      <input id="loginPassword" type="password" required placeholder="••••••" />
+      <button id="loginBtn" type="submit">دخول</button>
+      <p id="loginError" class="err"></p>
+      <p class="seed-hint">بيانات الإدارة الافتراضية بعد الـ seed: <b>admin@tikboost.app</b> / <b>Admin@123456</b></p>
+    </form>
+  </div>
+
+  <!-- Dashboard -->
+  <aside id="sidebar" class="sidebar hidden">
+    <div class="brand">
+      <div class="brand-logo">T</div>
+      <div>
+        <h2>TikBoost</h2>
+        <small>Admin Panel v1.0</small>
+      </div>
+    </div>
+    <nav>
+      <button data-page="dashboard" class="nav-btn active"><i>📊</i> الإحصائيات</button>
+      <button data-page="users"     class="nav-btn"><i>👥</i> المستخدمون</button>
+      <button data-page="campaigns" class="nav-btn"><i>🚀</i> الحملات</button>
+      <button data-page="purchases" class="nav-btn"><i>💳</i> المدفوعات</button>
+      <button data-page="reports"   class="nav-btn"><i>🚩</i> البلاغات</button>
+      <button data-page="notify"    class="nav-btn"><i>🔔</i> إرسال إشعار</button>
+      <button data-page="logs"      class="nav-btn"><i>📜</i> سجلات الإدارة</button>
+      <button data-page="packages"  class="nav-btn"><i>📦</i> الباقات</button>
+    </nav>
+    <div class="side-foot">
+      <div class="me" id="meBox"><span></span></div>
+      <button id="logoutBtn" class="logout">تسجيل الخروج</button>
+    </div>
+  </aside>
+
+  <main id="main" class="main hidden">
+    <header class="topbar">
+      <button id="toggleSidebar" class="hamburger">☰</button>
+      <h1 id="pageTitle">الإحصائيات</h1>
+      <div class="topbar-right">
+        <span class="api-status" id="apiStatus">• متصل</span>
+      </div>
+    </header>
+
+    <!-- DASHBOARD -->
+    <section class="page" data-page="dashboard">
+      <div class="cards">
+        <div class="kpi"><div class="kpi-label">المستخدمون</div><div class="kpi-value" id="kpiUsers">—</div></div>
+        <div class="kpi"><div class="kpi-label">الحملات</div><div class="kpi-value" id="kpiCampaigns">—</div></div>
+        <div class="kpi"><div class="kpi-label">المهام المنجزة</div><div class="kpi-value" id="kpiTasks">—</div></div>
+        <div class="kpi accent"><div class="kpi-label">الأرباح</div><div class="kpi-value" id="kpiRevenue">—</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card"><h3>نشاط آخر 14 يوم</h3><canvas id="chartActivity"></canvas></div>
+        <div class="card"><h3>أكثر المستخدمين نشاطاً</h3><div id="topUsers" class="top-list"></div></div>
+      </div>
+    </section>
+
+    <!-- USERS -->
+    <section class="page hidden" data-page="users">
+      <div class="toolbar">
+        <input id="userQuery" placeholder="ابحث بالاسم / البريد / ID / كود الإحالة" />
+        <select id="userRole"><option value="">كل الأدوار</option><option>USER</option><option>MODERATOR</option><option>FINANCE</option><option>ADMIN</option><option>SUPER_ADMIN</option></select>
+        <select id="userStatus"><option value="">كل الحالات</option><option>ACTIVE</option><option>FROZEN</option><option>BANNED</option></select>
+        <button id="usersRefresh" class="primary">تحديث</button>
+      </div>
+      <div class="card table-wrap">
+        <table id="usersTable">
+          <thead><tr>
+            <th>الاسم</th><th>البريد</th><th>الدور</th><th>الحالة</th>
+            <th>النقاط</th><th>الإحالة</th><th>تاريخ</th><th>إجراءات</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="table-foot">
+        <button id="usersPrev">السابق</button>
+        <span id="usersPageInfo">صفحة 1</span>
+        <button id="usersNext">التالي</button>
+      </div>
+    </section>
+
+    <!-- USER DETAIL MODAL -->
+    <div id="userModal" class="modal hidden">
+      <div class="modal-card">
+        <button class="modal-close" data-close>✕</button>
+        <h3 id="userModalTitle">مستخدم</h3>
+        <div id="userModalBody"></div>
+      </div>
+    </div>
+
+    <!-- CAMPAIGNS -->
+    <section class="page hidden" data-page="campaigns">
+      <div class="card table-wrap">
+        <table id="campaignsTable">
+          <thead><tr>
+            <th>النوع</th><th>المالك</th><th>الحالة</th><th>التقدم</th>
+            <th>المطلوب</th><th>التكلفة</th><th>تاريخ</th><th>إجراءات</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- PURCHASES -->
+    <section class="page hidden" data-page="purchases">
+      <div class="toolbar">
+        <select id="purchaseStatus"><option value="">كل الحالات</option><option>PENDING</option><option>APPROVED</option><option>REJECTED</option></select>
+        <button id="purchasesRefresh" class="primary">تحديث</button>
+      </div>
+      <div class="card table-wrap">
+        <table id="purchasesTable">
+          <thead><tr><th>المستخدم</th><th>الباقة</th><th>النقاط</th><th>السعر</th><th>الحالة</th><th>التاريخ</th><th>إجراءات</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- REPORTS -->
+    <section class="page hidden" data-page="reports">
+      <div class="card table-wrap">
+        <table id="reportsTable">
+          <thead><tr><th>المُبلّغ</th><th>المُبلَّغ عنه</th><th>السبب</th><th>الحالة</th><th>التاريخ</th><th>إجراءات</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- NOTIFY -->
+    <section class="page hidden" data-page="notify">
+      <div class="card form-card">
+        <label>المستلم</label>
+        <select id="notifyTarget">
+          <option value="">جميع المستخدمين (Broadcast)</option>
+        </select>
+        <label>العنوان</label>
+        <input id="notifyTitle" placeholder="عنوان الإشعار" />
+        <label>النص</label>
+        <textarea id="notifyBody" rows="4" placeholder="نص الرسالة"></textarea>
+        <label>النوع</label>
+        <select id="notifyType">
+          <option value="info">معلومة</option>
+          <option value="success">نجاح</option>
+          <option value="warning">تحذير</option>
+          <option value="reward">مكافأة</option>
+        </select>
+        <button id="notifySend" class="primary">إرسال</button>
+      </div>
+    </section>
+
+    <!-- LOGS -->
+    <section class="page hidden" data-page="logs">
+      <div class="card table-wrap">
+        <table id="logsTable">
+          <thead><tr><th>الفاعل</th><th>الإجراء</th><th>الهدف</th><th>التفاصيل</th><th>التاريخ</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- PACKAGES -->
+    <section class="page hidden" data-page="packages">
+      <div class="grid-3" id="packagesList"></div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="js/admin.js"></script>
+</body>
+</html>

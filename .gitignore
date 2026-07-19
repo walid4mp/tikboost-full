@@ -1,0 +1,17 @@
+node_modules/
+.env
+.env.*
+*.log
+build/
+dist/
+.DS_Store
+flutter-app/.dart_tool/
+flutter-app/.flutter-plugins
+flutter-app/.flutter-plugins-dependencies
+flutter-app/.packages
+flutter-app/pubspec.lock
+flutter-app/build/
+flutter-app/.idea/
+flutter-app/*.iml
+backend/prisma/migrations/dev.db
+admin-panel/assets/cache/
