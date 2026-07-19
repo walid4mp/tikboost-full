@@ -193,5 +193,26 @@ All enums (`UserRole`, `UserStatus`, `CampaignType`, `CampaignStatus`, `Purchase
 
 ---
 
+## Deploy on Render
+
+Render supports deploying Node apps via a web service and wiring `DATABASE_URL` from a Render Postgres database through `render.yaml` Blueprints. Render also supports generated secret env vars and a `preDeployCommand`, which is useful for Prisma schema sync and seeding. [Render](https://render.com/docs/blueprint-spec) [render.com](https://render.com/docs/deploy-prisma-orm)
+
+### Included in this repo
+- Root `render.yaml` that provisions:
+  - a web service named `tikboost-api`
+  - a PostgreSQL database named `tikboost-db`
+- Build command: `cd backend && npm run render:build`
+- Pre-deploy command: `cd backend && npm run render:predeploy`
+- Start command: `cd backend && npm start`
+- Health check path: `/health`
+- `DATABASE_URL` is wired from the Render Postgres connection string via `fromDatabase` [Render](https://render.com/docs/blueprint-spec)
+- JWT secrets are auto-generated via `generateValue: true` [Render](https://render.com/docs/blueprint-spec)
+- `APP_URL` can fall back to Render's default `RENDER_EXTERNAL_URL` env var at runtime [Render](https://render.com/docs/environment-variables)
+
+### Render notes
+- The repo is configured to run `prisma db push` and then seed the database during deploy.
+- Default web/database plans in `render.yaml` are set to `free` for easiest first deploy. Render documents free web services and free Postgres availability, though free Postgres instances have limits and expiry behavior. [Render](https://render.com/docs/free)
+- Change `SEED_ADMIN_PASSWORD` after first deploy.
+
 ## License
 MIT — free to use, modify, and deploy.

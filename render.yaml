@@ -1,0 +1,49 @@
+services:
+  - type: web
+    name: tikboost-api
+    runtime: node
+    plan: free
+    autoDeploy: true
+    buildCommand: cd backend && npm run render:build
+    preDeployCommand: cd backend && npm run render:predeploy
+    startCommand: cd backend && npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: APP_NAME
+        value: TikBoost
+      - key: DATABASE_URL
+        fromDatabase:
+          name: tikboost-db
+          property: connectionString
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_ACCESS_EXPIRES
+        value: 15m
+      - key: JWT_REFRESH_EXPIRES
+        value: 30d
+      - key: BCRYPT_ROUNDS
+        value: "10"
+      - key: SEED_ADMIN_EMAIL
+        value: admin@tikboost.app
+      - key: SEED_ADMIN_PASSWORD
+        value: ChangeMeBeforeProduction_2026!
+      - key: SEED_ADMIN_NAME
+        value: Super Admin
+      - key: TASK_COOLDOWN_SECONDS
+        value: "8"
+      - key: MAX_CAMPAIGNS_PER_USER
+        value: "20"
+      - key: FREEZE_DURATION_MIN
+        value: "60"
+      - key: SOCKET_CORS_ORIGIN
+        value: "*"
+      - key: ENABLE_GOOGLE_LOGIN
+        value: "true"
+
+databases:
+  - name: tikboost-db
+    plan: free

@@ -42,7 +42,7 @@ const WHEEL = [
       points: 0n, totalEarned: 0n, totalSpent: 0n,
     },
   });
-  console.log('✓ Admin:', admin.email, 'pw:', env.SEED_ADMIN_PASSWORD);
+  console.log('✓ Admin:', admin.email, '(password loaded from env)');
 
   for (const p of PACKAGES) {
     await prisma.pointPackage.upsert({
