@@ -84,6 +84,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                     : const Text('تسجيل الدخول'),
               ),
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
+                onPressed: busy ? null : () => context.push('/signup'),
+                icon: const Icon(Icons.person_add_alt_1_rounded, color: AppColors.red),
+                label: const Text('إنشاء حساب جديد',
+                  style: TextStyle(color: AppColors.red, fontWeight: FontWeight.w800)),
+              ),
               const SizedBox(height: 14),
 
               OutlinedButton.icon(
@@ -104,12 +111,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
 
               const SizedBox(height: 18),
-              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                TextButton(onPressed: () => context.push('/forgot'),
-                  child: const Text('نسيت كلمة المرور؟')),
-                TextButton(onPressed: () => context.push('/signup'),
-                  child: const Text('إنشاء حساب جديد', style: TextStyle(color: AppColors.red))),
-              ]),
+              Center(
+                child: TextButton(
+                  onPressed: () => context.push('/forgot'),
+                  child: const Text('نسيت كلمة المرور؟'),
+                ),
+              ),
             ],
           ),
         ),
