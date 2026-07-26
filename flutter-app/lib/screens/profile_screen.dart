@@ -40,7 +40,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           Card(child: Padding(
             padding: const EdgeInsets.all(20),
             child: Row(children: [
-              CircleAvatar(radius: 32, backgroundColor: AppColors.red.withOpacity(0.15),
+              CircleAvatar(radius: 32, backgroundColor: AppColors.red.withValues(alpha: 0.15),
                 child: const Icon(Icons.person, color: AppColors.red, size: 32)),
               const SizedBox(width: 14),
               Expanded(child: Column(
@@ -53,7 +53,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   const SizedBox(height: 6),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(color: AppColors.success.withOpacity(0.15),
+                    decoration: BoxDecoration(color: AppColors.success.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(8)),
                     child: Text('${user?.points ?? 0} نقطة',
                       style: const TextStyle(color: AppColors.success, fontWeight: FontWeight.w700)),

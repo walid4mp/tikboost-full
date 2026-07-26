@@ -121,7 +121,7 @@ class _EarnScreenState extends ConsumerState<EarnScreen> with SingleTickerProvid
                       Container(
                         width: 52, height: 52,
                         decoration: BoxDecoration(
-                          color: c.withOpacity(0.15), borderRadius: BorderRadius.circular(14)),
+                          color: c.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(14)),
                         child: Icon(_icon(t['type']), color: c, size: 28)),
                       const SizedBox(width: 12),
                       Expanded(child: Column(

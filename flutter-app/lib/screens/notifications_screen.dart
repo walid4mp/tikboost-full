@@ -62,7 +62,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                   final c = _color(n['type'] ?? 'info');
                   return ListTile(
                     leading: CircleAvatar(
-                      backgroundColor: c.withOpacity(0.18),
+                      backgroundColor: c.withValues(alpha: 0.18),
                       child: Icon(_icon(n['type'] ?? 'info'), color: c)),
                     title: Text(n['title'] ?? '',
                       style: const TextStyle(fontWeight: FontWeight.w700)),

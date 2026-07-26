@@ -100,7 +100,7 @@ class _MyCampaignsScreenState extends ConsumerState<MyCampaignsScreen> {
                           style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15))),
                         Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: _statusColor(c['status']).withOpacity(0.15),
+                            color: _statusColor(c['status']).withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(8)),
                           child: Text(c['status'],
                             style: TextStyle(color: _statusColor(c['status']),

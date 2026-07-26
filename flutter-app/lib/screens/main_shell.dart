@@ -38,7 +38,7 @@ class MainShell extends StatelessWidget {
             selectedIndex: idx,
             onDestinationSelected: (i) => context.go(_tabs[i].$1),
             backgroundColor: Colors.transparent,
-            indicatorColor: AppColors.red.withOpacity(0.18),
+            indicatorColor: AppColors.red.withValues(alpha: 0.18),
             destinations: _tabs.map((t) => NavigationDestination(
               icon: Icon(t.$2, color: AppColors.textMuted),
               selectedIcon: Icon(t.$2, color: AppColors.red),

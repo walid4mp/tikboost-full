@@ -93,9 +93,9 @@ class _CreateCampaignScreenState extends ConsumerState<CreateCampaignScreen> {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: AppColors.red.withOpacity(0.10),
+                color: AppColors.red.withValues(alpha: 0.10),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.red.withOpacity(0.3)),
+                border: Border.all(color: AppColors.red.withValues(alpha: 0.3)),
               ),
               child: Row(children: [
                 const Icon(Icons.local_fire_department, color: AppColors.red),

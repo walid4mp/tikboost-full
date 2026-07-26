@@ -40,6 +40,9 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Analyze Flutter code
+        run: flutter analyze
+
       - name: Build release APK
         run: |
           flutter build apk --release \

@@ -22,7 +22,7 @@ class HomeScreen extends ConsumerWidget {
           children: [
             const SizedBox(height: 4),
             Row(children: [
-              CircleAvatar(radius: 22, backgroundColor: AppColors.red.withOpacity(0.2),
+              CircleAvatar(radius: 22, backgroundColor: AppColors.red.withValues(alpha: 0.2),
                 child: const Icon(Icons.person, color: AppColors.red)),
               const SizedBox(width: 10),
               Expanded(child: Column(
@@ -90,7 +90,7 @@ class _BalanceCard extends StatelessWidget {
           begin: Alignment.topLeft, end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: AppColors.red.withOpacity(0.35),
+        boxShadow: [BoxShadow(color: AppColors.red.withValues(alpha: 0.35),
           blurRadius: 18, offset: const Offset(0, 8))],
       ),
       child: Row(children: [

@@ -42,7 +42,7 @@ class ContactScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: AppColors.red.withOpacity(0.10),
+              color: AppColors.red.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(14),
             ),
             child: const Row(children: [
@@ -70,7 +70,7 @@ class ContactScreen extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Row(children: [
-            CircleAvatar(backgroundColor: color.withOpacity(0.18),
+            CircleAvatar(backgroundColor: color.withValues(alpha: 0.18),
               child: Icon(icon, color: color)),
             const SizedBox(width: 14),
             Expanded(child: Column(

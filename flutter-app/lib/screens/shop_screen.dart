@@ -83,7 +83,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(color: c.withOpacity(0.18),
+                      decoration: BoxDecoration(color: c.withValues(alpha: 0.18),
                         borderRadius: BorderRadius.circular(8)),
                       child: Text((p['name'] ?? '').toString().toUpperCase(),
                         style: TextStyle(color: c, fontWeight: FontWeight.w900, fontSize: 12)),
@@ -112,7 +112,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: AppColors.blue.withOpacity(0.10),
+              color: AppColors.blue.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(14)),
             child: const Row(children: [
               Icon(Icons.support_agent, color: AppColors.blue),

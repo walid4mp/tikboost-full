@@ -46,7 +46,7 @@ class AppTheme {
         bodyColor: text, displayColor: text,
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: bg.withOpacity(0.85),
+        backgroundColor: bg.withValues(alpha: 0.85),
         elevation: 0,
         centerTitle: true,
         iconTheme: IconThemeData(color: text),
@@ -54,7 +54,7 @@ class AppTheme {
           color: text, fontSize: 17, fontWeight: FontWeight.w700,
         ),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: surface,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
