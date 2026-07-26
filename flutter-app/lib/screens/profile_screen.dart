@@ -98,7 +98,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           const SizedBox(height: 8),
           if (loading) const Padding(padding: EdgeInsets.all(20),
             child: Center(child: CircularProgressIndicator()))
-          else if (logs.isEmpty) Card(child: const Padding(
+          else if (logs.isEmpty) const Card(child: Padding(
               padding: EdgeInsets.all(20),
               child: Text('لا توجد عمليات')))
           else for (final l in logs.take(20))

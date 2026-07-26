@@ -19,13 +19,13 @@ class _CreateCampaignScreenState extends ConsumerState<CreateCampaignScreen> {
   int totalCost = 0;
 
   // pricing mirror from backend
-  static const PRICE = {
+  static const priceByType = {
     'FOLLOWERS': 100, 'LIKES': 20, 'VIEWS': 5, 'COMMENTS': 50,
   };
 
   void recalc() {
     final q = int.tryParse(quantity.text) ?? 0;
-    setState(() => totalCost = q * (PRICE[type] ?? 100));
+    setState(() => totalCost = q * (priceByType[type] ?? 100));
   }
 
   Future<void> submit() async {

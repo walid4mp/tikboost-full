@@ -27,11 +27,11 @@ class SettingsScreen extends ConsumerWidget {
             subtitle: const Text('العربية / English'),
             onTap: () => theme.setLanguage('ar'),
           ),
-          ListTile(
-            leading: const Icon(Icons.notifications, color: AppColors.red),
-            title: const Text('الإشعارات الفورية'),
-            subtitle: const Text('مفعّلة عبر Socket.io'),
-            trailing: const Icon(Icons.check_circle, color: AppColors.success),
+          const ListTile(
+            leading: Icon(Icons.notifications, color: AppColors.red),
+            title: Text('الإشعارات الفورية'),
+            subtitle: Text('مفعّلة عبر Socket.io'),
+            trailing: Icon(Icons.check_circle, color: AppColors.success),
             onTap: null,
           ),
           const Divider(),

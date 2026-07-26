@@ -69,7 +69,7 @@ class HomeScreen extends ConsumerWidget {
             const SizedBox(height: 16),
             const Text('آخر الحملات', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
             const SizedBox(height: 8),
-            _MyCampaigns(),
+            const _MyCampaigns(),
           ],
         ),
       ),
@@ -111,6 +111,7 @@ class _BalanceCard extends StatelessWidget {
 }
 
 class _MyCampaigns extends ConsumerStatefulWidget {
+  const _MyCampaigns();
   @override
   ConsumerState<_MyCampaigns> createState() => _MyCampaignsState();
 }
@@ -134,10 +135,14 @@ class _MyCampaignsState extends ConsumerState<_MyCampaigns> {
 
   @override
   Widget build(BuildContext context) {
-    if (loading) return const Padding(padding: EdgeInsets.all(20),
-      child: Center(child: CircularProgressIndicator()));
+    if (loading) {
+      return const Padding(
+        padding: EdgeInsets.all(20),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
     if (items.isEmpty) {
-      return Card(child: const ListTile(
+      return const Card(child: ListTile(
         leading: Icon(Icons.campaign_outlined, color: AppColors.red),
         title: Text('لا توجد حملات بعد'),
         subtitle: Text('اضغط "إنشاء حملة" للبدء.'),

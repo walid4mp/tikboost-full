@@ -63,7 +63,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               const Text('مرحباً بعودتك 👋',
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
               const SizedBox(height: 8),
-              Text('سجّل دخولك لجمع النقاط وإدارة حملاتك.',
+              const Text('سجّل دخولك لجمع النقاط وإدارة حملاتك.',
                 style: TextStyle(color: AppColors.textMuted)),
               const SizedBox(height: 24),
 
@@ -97,11 +97,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 onPressed: busy ? null : () async {
                   setState(() { busy = true; error = null; });
                   try {
+                    final router = GoRouter.of(context);
                     await ref.read(authProvider).loginWithGoogle(
                       email: 'demo@gmail.com', name: 'مستخدم Google', googleId: DateTime.now().toString(),
                     );
                     if (!mounted) return;
-                    context.go('/home');
+                    router.go('/home');
                   } catch (e) {
                     setState(() => error = 'تعذر الدخول عبر Google الآن.');
                   } finally { setState(() => busy = false); }

@@ -50,10 +50,10 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         child: loading
           ? const Center(child: CircularProgressIndicator())
           : items.isEmpty
-            ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                const Icon(Icons.notifications_off_outlined, size: 60, color: AppColors.textMuted),
-                const SizedBox(height: 10),
-                const Text('لا توجد إشعارات'),
+            ? const Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.notifications_off_outlined, size: 60, color: AppColors.textMuted),
+                SizedBox(height: 10),
+                Text('لا توجد إشعارات'),
               ]))
             : ListView.builder(
                 itemCount: items.length,

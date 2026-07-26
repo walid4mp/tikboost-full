@@ -37,7 +37,7 @@ class _EarnScreenState extends ConsumerState<EarnScreen> with SingleTickerProvid
   Future<void> execute(dynamic task) async {
     final messenger = ScaffoldMessenger.of(context);
     try {
-      final r = await ApiClient.instance.dio.post('/tasks/execute', data: {'campaignId': task['id']});
+      await ApiClient.instance.dio.post('/tasks/execute', data: {'campaignId': task['id']});
       messenger.showSnackBar(SnackBar(
         content: Text('تم! ربحت ${task['rewardPoints']} نقطة'),
         backgroundColor: AppColors.success,

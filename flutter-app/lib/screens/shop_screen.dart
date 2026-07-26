@@ -15,7 +15,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
   List<dynamic> packages = [];
   bool loading = true;
 
-  static const PRICE_USD = {
+  static const priceUsd = {
     'starter': 1, 'basic': 5, 'pro': 10, 'elite': 25, 'vip': 50,
   };
 
@@ -89,7 +89,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                         style: TextStyle(color: c, fontWeight: FontWeight.w900, fontSize: 12)),
                     ),
                     const Spacer(),
-                    Text('\$${PRICE_USD[p['slug']] ?? '-'}',
+                    Text('\$${priceUsd[p['slug']] ?? '-'}',
                       style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
                     const SizedBox(height: 4),
                     Text('${p['points']} نقطة',

@@ -30,7 +30,7 @@ class MainShell extends StatelessWidget {
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
-          border: Border(top: BorderSide(color: AppColors.border)),
+          border: const Border(top: BorderSide(color: AppColors.border)),
         ),
         child: SafeArea(
           top: false,
