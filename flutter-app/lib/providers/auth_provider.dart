@@ -36,13 +36,18 @@ class AuthState extends ChangeNotifier {
 class AuthProvider extends ChangeNotifier {
   final state = AuthState();
 
+  void _emit() {
+    state.notifyAll();
+    notifyListeners();
+  }
+
   Future<String?> bootstrap() async {
     state.token = await ApiClient.instance.storage.read(key: 'accessToken');
     if (state.token == null) return null;
     try {
       final r = await ApiClient.instance.dio.get('/auth/me');
       state.user = AuthUser.fromJson(r.data['user']);
-      state.notifyAll();
+      _emit();
     } catch (_) {
       state.token = null;
       await ApiClient.instance.clear();
@@ -61,7 +66,7 @@ class AuthProvider extends ChangeNotifier {
     final user = AuthUser.fromJson(r.data['user']);
     await ApiClient.instance.setTokens(r.data['accessToken'], r.data['refreshToken']);
     state.user = user; state.token = r.data['accessToken'];
-    state.notifyAll();
+    _emit();
     return 'ok';
   }
 
@@ -72,7 +77,7 @@ class AuthProvider extends ChangeNotifier {
     final user = AuthUser.fromJson(r.data['user']);
     await ApiClient.instance.setTokens(r.data['accessToken'], r.data['refreshToken']);
     state.user = user; state.token = r.data['accessToken'];
-    state.notifyAll();
+    _emit();
     return 'ok';
   }
 
@@ -85,7 +90,7 @@ class AuthProvider extends ChangeNotifier {
     final user = AuthUser.fromJson(r.data['user']);
     await ApiClient.instance.setTokens(r.data['accessToken'], r.data['refreshToken']);
     state.user = user; state.token = r.data['accessToken'];
-    state.notifyAll();
+    _emit();
     return 'ok';
   }
 
@@ -100,7 +105,7 @@ class AuthProvider extends ChangeNotifier {
     try { await ApiClient.instance.dio.post('/auth/logout', data: {'refreshToken': rt}); }
     catch (_) {}
     await ApiClient.instance.clear();
-    state.user = null; state.token = null; state.notifyAll();
+    state.user = null; state.token = null; _emit();
   }
 }
 

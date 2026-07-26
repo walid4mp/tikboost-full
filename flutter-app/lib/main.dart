@@ -36,7 +36,7 @@ void main() async {
     ),
   );
   final container = ProviderContainer();
-  final token = await container.read(authProvider.notifier).bootstrap();
+  final token = await container.read(authProvider).bootstrap();
   if (token != null) SocketService.instance.connect(token);
   runApp(UncontrolledProviderScope(container: container, child: const TikBoostApp()));
 }
@@ -46,8 +46,8 @@ class TikBoostApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final themeMode = ref.watch(themeProvider);
-    final auth = ref.watch(authProvider);
+    final themeMode = ref.watch(themeProvider).mode;
+    final auth = ref.watch(authProvider).state;
 
     final router = GoRouter(
       initialLocation: '/',

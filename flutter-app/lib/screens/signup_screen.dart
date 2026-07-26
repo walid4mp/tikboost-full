@@ -71,9 +71,12 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                             : const Text('إنشاء الحساب')),
               const SizedBox(height: 16),
-              Center(child: TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('لديك حساب؟ تسجيل الدخول'))),
+              Center(
+                child: TextButton(
+                  onPressed: () => context.go('/login'),
+                  child: const Text('لديك حساب؟ تسجيل الدخول'),
+                ),
+              ),
             ],
           ),
         ),
