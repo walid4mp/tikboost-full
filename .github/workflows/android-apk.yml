@@ -25,12 +25,12 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Setup Flutter  
-  uses: subosito/flutter-action@v2
-  with:
-    flutter-version: "3.35.0"
-    channel: stable
-     cache: true
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.8'
+          channel: stable
+          cache: true
 
       - name: Flutter version
         run: flutter --version
@@ -38,11 +38,17 @@ jobs:
       - name: Generate missing Android project files if absent
         run: flutter create . --platforms=android
 
+      - name: Flutter clean
+        run: flutter clean
+
       - name: Install dependencies
         run: flutter pub get
 
       - name: Analyze Flutter code
         run: flutter analyze --no-fatal-infos
+
+      - name: Run widget tests
+        run: flutter test
 
       - name: Build release APK
         run: |
