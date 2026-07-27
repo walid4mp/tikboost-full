@@ -24,7 +24,7 @@ async function api(path, opts={}) {
     opts.headers || {},
   );
   const access = store.access;
-  if (access) headers['Authorization'] = 'Bearer ' + access;
+  if (access) headers.Authorization = 'Bearer ' + access;
 
   const res = await fetch(API.base + path, {
     method: opts.method || 'GET',
@@ -32,17 +32,28 @@ async function api(path, opts={}) {
     body: opts.body ? JSON.stringify(opts.body) : undefined,
   });
 
-  // Try silent refresh once on 401
-  if (res.status === 401 && store.refresh && !path.startsWith('/admin-panel/login')) {
-    const r = await fetch(API.base + '/admin-panel/login', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({}), // not used; we'll use a refresh path instead
-    }).catch(() => null);
-    // (intentionally not implemented here because the admin endpoint set already covers auth via JWT)
-  }
-
   let data = null;
   try { data = await res.json(); } catch {}
+
+  if (res.status === 401 && store.refresh && !opts._retry && !path.startsWith('/admin-panel/login') && !path.startsWith('/auth/refresh')) {
+    try {
+      const refreshRes = await fetch(API.base + '/auth/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken: store.refresh }),
+      });
+      const refreshData = await refreshRes.json().catch(() => null);
+      if (refreshRes.ok && refreshData?.accessToken && refreshData?.refreshToken) {
+        store.access = refreshData.accessToken;
+        store.refresh = refreshData.refreshToken;
+        return api(path, { ...opts, _retry: true });
+      }
+    } catch {}
+    store.clear();
+    location.reload();
+    throw new Error('انتهت الجلسة، يرجى تسجيل الدخول مرة أخرى.');
+  }
+
   if (!res.ok) {
     const err = new Error((data && data.message) || `HTTP ${res.status}`);
     err.status = res.status; err.data = data; throw err;

@@ -1,10 +1,13 @@
 require('dotenv').config();
 
+const NODE_ENV = process.env.NODE_ENV || 'development';
+const APP_URL = process.env.APP_URL || process.env.RENDER_EXTERNAL_URL || 'http://localhost:4000';
+
 module.exports = {
-  NODE_ENV: process.env.NODE_ENV || 'development',
+  NODE_ENV,
   PORT: parseInt(process.env.PORT || '4000', 10),
   APP_NAME: process.env.APP_NAME || 'TikBoost',
-  APP_URL: process.env.APP_URL || process.env.RENDER_EXTERNAL_URL || 'http://localhost:4000',
+  APP_URL,
   DATABASE_URL: process.env.DATABASE_URL,
   JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET || 'dev_access_secret',
   JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET || 'dev_refresh_secret',
@@ -17,6 +20,9 @@ module.exports = {
   TASK_COOLDOWN_SECONDS: parseInt(process.env.TASK_COOLDOWN_SECONDS || '8', 10),
   MAX_CAMPAIGNS_PER_USER: parseInt(process.env.MAX_CAMPAIGNS_PER_USER || '20', 10),
   FREEZE_DURATION_MIN: parseInt(process.env.FREEZE_DURATION_MIN || '60', 10),
-  SOCKET_CORS_ORIGIN: process.env.SOCKET_CORS_ORIGIN || '*',
-  ENABLE_GOOGLE_LOGIN: (process.env.ENABLE_GOOGLE_LOGIN || 'true') === 'true',
+  SOCKET_CORS_ORIGIN:
+    process.env.SOCKET_CORS_ORIGIN || (NODE_ENV === 'production' ? APP_URL : '*'),
+  ENABLE_GOOGLE_LOGIN: (process.env.ENABLE_GOOGLE_LOGIN || 'false') === 'true',
+  ENABLE_LEGACY_PASSWORD_RESET:
+    (process.env.ENABLE_LEGACY_PASSWORD_RESET || 'false') === 'true',
 };

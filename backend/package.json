@@ -10,7 +10,8 @@
     "prisma:generate": "prisma generate --schema=prisma/schema.prisma",
     "prisma:push": "prisma db push --schema=prisma/schema.prisma",
     "prisma:migrate": "prisma migrate dev --schema=prisma/schema.prisma",
-    "render:build": "npm install && npm run prisma:generate",
+    "check:syntax": "find src -name '*.js' -print0 | xargs -0 -n1 node --check",
+    "render:build": "npm install && npm run prisma:generate && npm run check:syntax",
     "render:predeploy": "npm run prisma:push && npm run seed"
   },
   "dependencies": {
@@ -25,9 +26,8 @@
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
     "pg": "^8.13.0",
-    "socket.io": "^4.7.5",
-    "uuid": "^10.0.0",
-    "prisma": "5.22.0"
+    "prisma": "5.22.0",
+    "socket.io": "^4.7.5"
   },
   "devDependencies": {
     "nodemon": "^3.1.7"

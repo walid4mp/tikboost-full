@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../config/app_config.dart';
 import '../config/app_theme.dart';
 import '../providers/auth_provider.dart';
 
@@ -17,19 +18,37 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   String? error;
 
   Future<void> doLogin() async {
-    setState(() { busy = true; error = null; });
+    setState(() {
+      busy = true;
+      error = null;
+    });
     try {
-      await ref.read(authProvider).login(email: email.text.trim(), password: password.text);
+      await ref.read(authProvider).login(
+            email: email.text.trim(),
+            password: password.text,
+          );
       if (!mounted) return;
       context.go('/home');
     } catch (e) {
       setState(() => error = _readError(e));
-    } finally { setState(() => busy = false); }
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
   }
 
   String _readError(Object e) {
-    try { return (e as dynamic).response?.data?['message']?.toString() ?? e.toString(); }
-    catch (_) { return e.toString(); }
+    try {
+      return (e as dynamic).response?.data?['message']?.toString() ?? e.toString();
+    } catch (_) {
+      return e.toString();
+    }
+  }
+
+  @override
+  void dispose() {
+    email.dispose();
+    password.dispose();
+    super.dispose();
   }
 
   @override
@@ -44,73 +63,118 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               Row(
                 children: [
                   Container(
-                    width: 46, height: 46,
+                    width: 46,
+                    height: 46,
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
                         colors: [AppColors.red, AppColors.redDeep],
-                        begin: Alignment.topLeft, end: Alignment.bottomRight),
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Center(child: Text('T',
-                      style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900))),
+                    child: const Center(
+                      child: Text(
+                        'T',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 26,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 12),
-                  const Text('TikBoost',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
+                  const Text(
+                    'TikBoost',
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
+                  ),
                 ],
               ),
               const SizedBox(height: 28),
-              const Text('مرحباً بعودتك 👋',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+              const Text(
+                'مرحباً بعودتك 👋',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+              ),
               const SizedBox(height: 8),
-              const Text('سجّل دخولك لجمع النقاط وإدارة حملاتك.',
-                style: TextStyle(color: AppColors.textMuted)),
+              const Text(
+                'سجّل دخولك لجمع النقاط وإدارة حملاتك.',
+                style: TextStyle(color: AppColors.textMuted),
+              ),
               const SizedBox(height: 24),
-
-              TextField(controller: email, keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(prefixIcon: Icon(Icons.email_outlined),
-                  hintText: 'البريد الإلكتروني')),
+              TextField(
+                controller: email,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(
+                  prefixIcon: Icon(Icons.email_outlined),
+                  hintText: 'البريد الإلكتروني',
+                ),
+              ),
               const SizedBox(height: 12),
-              TextField(controller: password, obscureText: true,
-                decoration: const InputDecoration(prefixIcon: Icon(Icons.lock_outline),
-                  hintText: 'كلمة المرور')),
+              TextField(
+                controller: password,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  prefixIcon: Icon(Icons.lock_outline),
+                  hintText: 'كلمة المرور',
+                ),
+              ),
               const SizedBox(height: 16),
-              if (error != null) Text(error!, style: const TextStyle(color: AppColors.red)),
+              if (error != null)
+                Text(error!, style: const TextStyle(color: AppColors.red)),
               const SizedBox(height: 8),
               ElevatedButton(
                 onPressed: busy ? null : doLogin,
                 child: busy
-                    ? const SizedBox(height: 18, width: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    ? const SizedBox(
+                        height: 18,
+                        width: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
                     : const Text('تسجيل الدخول'),
               ),
               const SizedBox(height: 10),
               OutlinedButton.icon(
                 onPressed: busy ? null : () => context.push('/signup'),
-                icon: const Icon(Icons.person_add_alt_1_rounded, color: AppColors.red),
-                label: const Text('إنشاء حساب جديد',
-                  style: TextStyle(color: AppColors.red, fontWeight: FontWeight.w800)),
+                icon: const Icon(
+                  Icons.person_add_alt_1_rounded,
+                  color: AppColors.red,
+                ),
+                label: const Text(
+                  'إنشاء حساب جديد',
+                  style: TextStyle(
+                    color: AppColors.red,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
               ),
-              const SizedBox(height: 14),
-
-              OutlinedButton.icon(
-                onPressed: busy ? null : () async {
-                  setState(() { busy = true; error = null; });
-                  try {
-                    final router = GoRouter.of(context);
-                    await ref.read(authProvider).loginWithGoogle(
-                      email: 'demo@gmail.com', name: 'مستخدم Google', googleId: DateTime.now().toString(),
-                    );
-                    if (!mounted) return;
-                    router.go('/home');
-                  } catch (e) {
-                    setState(() => error = 'تعذر الدخول عبر Google الآن.');
-                  } finally { setState(() => busy = false); }
-                },
-                icon: const Icon(Icons.login, color: AppColors.blue),
-                label: const Text('متابعة باستخدام Google'),
-              ),
-
+              if (AppConfig.enableGoogleLogin) ...[
+                const SizedBox(height: 14),
+                OutlinedButton.icon(
+                  onPressed: busy
+                      ? null
+                      : () async {
+                          setState(() {
+                            busy = true;
+                            error = null;
+                          });
+                          try {
+                            throw UnsupportedError(
+                              'Google Sign-In SDK is not integrated yet.',
+                            );
+                          } catch (_) {
+                            setState(() => error = 'ميزة الدخول عبر Google ستتوفر بعد ربط Google Sign-In الحقيقي.');
+                          } finally {
+                            if (mounted) setState(() => busy = false);
+                          }
+                        },
+                  icon: const Icon(Icons.login, color: AppColors.blue),
+                  label: const Text('متابعة باستخدام Google'),
+                ),
+              ],
               const SizedBox(height: 18),
               Center(
                 child: TextButton(

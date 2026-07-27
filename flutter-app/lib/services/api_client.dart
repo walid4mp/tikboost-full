@@ -10,42 +10,64 @@ class ApiClient {
       receiveTimeout: const Duration(seconds: 30),
       headers: {'Content-Type': 'application/json'},
     ));
+
+    _refreshDio = Dio(BaseOptions(
+      baseUrl: AppConfig.apiBaseUrl,
+      connectTimeout: const Duration(seconds: 20),
+      receiveTimeout: const Duration(seconds: 30),
+      headers: {'Content-Type': 'application/json'},
+    ));
+
     dio.interceptors.add(InterceptorsWrapper(
-      onRequest: (o, h) async {
+      onRequest: (options, handler) async {
         final token = await storage.read(key: 'accessToken');
-        if (token != null) o.headers['Authorization'] = 'Bearer $token';
-        h.next(o);
+        if (token != null && token.isNotEmpty) {
+          options.headers['Authorization'] = 'Bearer $token';
+        }
+        handler.next(options);
       },
-      onError: (e, h) async {
-        if (e.response?.statusCode == 401) {
-          final refresh = await storage.read(key: 'refreshToken');
-          if (refresh != null) {
+      onError: (error, handler) async {
+        final path = error.requestOptions.path;
+        final alreadyRetried = error.requestOptions.extra['retried'] == true;
+        final shouldSkipRefresh =
+            path.contains('/auth/refresh') || path.contains('/auth/logout');
+
+        if (error.response?.statusCode == 401 && !alreadyRetried && !shouldSkipRefresh) {
+          final refreshToken = await storage.read(key: 'refreshToken');
+          if (refreshToken != null && refreshToken.isNotEmpty) {
             try {
-              final res = await Dio().post('${AppConfig.apiBaseUrl}/auth/refresh',
-                data: {'refreshToken': refresh});
+              final res = await _refreshDio.post('/auth/refresh', data: {
+                'refreshToken': refreshToken,
+              });
               if (res.statusCode == 200) {
-                await storage.write(key: 'accessToken', value: res.data['accessToken']);
-                await storage.write(key: 'refreshToken', value: res.data['refreshToken']);
-                final req = e.requestOptions;
-                req.headers['Authorization'] = 'Bearer ${res.data['accessToken']}';
-                final retry = await dio.fetch(req);
-                return h.resolve(retry);
+                final newAccess = '${res.data['accessToken']}';
+                final newRefresh = '${res.data['refreshToken']}';
+                await setTokens(newAccess, newRefresh);
+                final request = error.requestOptions;
+                request.headers['Authorization'] = 'Bearer $newAccess';
+                request.extra['retried'] = true;
+                final retryResponse = await dio.fetch(request);
+                return handler.resolve(retryResponse);
               }
-            } catch (_) {}
+            } catch (_) {
+              await clear();
+            }
           }
         }
-        h.next(e);
+        handler.next(error);
       },
     ));
   }
 
   static final ApiClient instance = ApiClient._();
   late final Dio dio;
+  late final Dio _refreshDio;
   final storage = const FlutterSecureStorage();
 
   Future<void> setTokens(String access, String refresh) async {
     await storage.write(key: 'accessToken', value: access);
     await storage.write(key: 'refreshToken', value: refresh);
   }
+
   Future<void> clear() async => storage.deleteAll();
 }
