@@ -20,7 +20,7 @@ class AppConfig {
     defaultValue: false,
   );
 
-  static const String whatsapp = '+966559658947';
+  static const String whatsapp = '+213559658947';
   static const String email = 'walid300105@gmail.com';
 
   static String get whatsappChatUrl =>
