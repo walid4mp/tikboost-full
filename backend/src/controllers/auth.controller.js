@@ -213,13 +213,28 @@ async function issueTokens(user) {
   return { accessToken, refreshToken };
 }
 
-function sanitize(u) {
-  if (!u) return null;
-  const o = { ...u };
-  delete o.password;
-  return o;
+function toSerializable(value) {
+  return JSON.parse(
+    JSON.stringify(value, (_key, current) =>
+      typeof current === 'bigint'
+        ? current.toString()
+        : current
+    )
+  );
 }
 
+function sanitize(user) {
+  if (!user) return null;
+
+  const plain =
+    typeof user.toJSON === 'function'
+      ? user.toJSON()
+      : { ...user };
+
+  delete plain.password;
+
+  return toSerializable(plain);
+}
 module.exports = {
   signup,
   login,
