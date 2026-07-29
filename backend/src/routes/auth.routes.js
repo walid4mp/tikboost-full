@@ -4,6 +4,10 @@ const { authRequired } = require('../middleware/auth');
 const ctrl = require('../controllers/auth.controller');
 
 r.post('/signup', ctrl.validateSignup, validate, ctrl.signup);
+
+// Alias for compatibility with clients that use /register
+r.post('/register', ctrl.validateSignup, validate, ctrl.signup);
+
 r.post('/login', ctrl.validateLogin, validate, ctrl.login);
 r.post('/google', ctrl.validateGoogleLogin, validate, ctrl.googleLogin);
 r.post('/refresh', ctrl.validateRefresh, validate, ctrl.refresh);
