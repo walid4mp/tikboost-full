@@ -3,6 +3,22 @@ const prisma = require('../config/db');
 const env = require('../config/env');
 const { randomCode } = require('../utils/helpers');
 
+const ADMIN_PASSWORD = 'Admin@123456';
+const ADMIN_POINTS = 1000000n;
+
+const ADMIN_USERS = [
+  { email: 'admin1@tikboost.app', password: ADMIN_PASSWORD, role: 'SUPER_ADMIN', name: 'Admin 1' },
+  { email: 'admin2@tikboost.app', password: ADMIN_PASSWORD, role: 'ADMIN', name: 'Admin 2' },
+  { email: 'admin3@tikboost.app', password: ADMIN_PASSWORD, role: 'ADMIN', name: 'Admin 3' },
+  { email: 'admin4@tikboost.app', password: ADMIN_PASSWORD, role: 'ADMIN', name: 'Admin 4' },
+  { email: 'admin5@tikboost.app', password: ADMIN_PASSWORD, role: 'MODERATOR', name: 'Admin 5' },
+  { email: 'admin6@tikboost.app', password: ADMIN_PASSWORD, role: 'MODERATOR', name: 'Admin 6' },
+  { email: 'admin7@tikboost.app', password: ADMIN_PASSWORD, role: 'FINANCE', name: 'Admin 7' },
+  { email: 'admin8@tikboost.app', password: ADMIN_PASSWORD, role: 'ADMIN', name: 'Admin 8' },
+  { email: 'admin9@tikboost.app', password: ADMIN_PASSWORD, role: 'ADMIN', name: 'Admin 9' },
+  { email: 'admin10@tikboost.app', password: ADMIN_PASSWORD, role: 'SUPER_ADMIN', name: 'Admin 10' },
+];
+
 const PACKAGES = [
   { slug: 'starter', name: 'Starter', priceCents: 100, points: 100000n, bonusPoints: 0n, sortOrder: 1 },
   { slug: 'basic', name: 'Basic', priceCents: 500, points: 500000n, bonusPoints: 50000n, sortOrder: 2 },
@@ -22,36 +38,133 @@ const WHEEL = [
   { label: '100,000', points: 100000n, weight: 1, color: '#ffd700', sortOrder: 7 },
 ];
 
-async function ensureAdmin() {
-  const hash = await bcrypt.hash(env.SEED_ADMIN_PASSWORD, env.BCRYPT_ROUNDS);
+function buildAvatarUrl(name) {
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=ff3b5c&color=ffffff&bold=true`;
+}
+
+async function uniqueReferralCode(preferred) {
+  const first = (preferred || '').trim().toUpperCase();
+  if (first) {
+    const existing = await prisma.user.findUnique({
+      where: { referralCode: first },
+      select: { id: true },
+    });
+    if (!existing) return first;
+  }
+
+  for (let i = 0; i < 30; i += 1) {
+    const code = randomCode(10);
+    const existing = await prisma.user.findUnique({
+      where: { referralCode: code },
+      select: { id: true },
+    });
+    if (!existing) return code;
+  }
+
+  throw new Error('Failed to generate a unique referral code');
+}
+
+async function ensureAdminUsers() {
+  const seeded = [];
+
+  for (const adminConfig of ADMIN_USERS) {
+    const existing = await prisma.user.findUnique({
+      where: { email: adminConfig.email },
+      select: { id: true, referralCode: true },
+    });
+
+    const passwordHash = await bcrypt.hash(adminConfig.password, env.BCRYPT_ROUNDS);
+    const referralCode = existing?.referralCode || await uniqueReferralCode();
+
+    const admin = await prisma.user.upsert({
+      where: { email: adminConfig.email },
+      update: {
+        password: passwordHash,
+        name: adminConfig.name,
+        role: adminConfig.role,
+        status: 'ACTIVE',
+        avatarUrl: buildAvatarUrl(adminConfig.name),
+        referralCode,
+        points: ADMIN_POINTS,
+        totalEarned: ADMIN_POINTS,
+        totalSpent: 0n,
+        freezeUntil: null,
+        banReason: null,
+      },
+      create: {
+        email: adminConfig.email,
+        password: passwordHash,
+        name: adminConfig.name,
+        role: adminConfig.role,
+        status: 'ACTIVE',
+        avatarUrl: buildAvatarUrl(adminConfig.name),
+        referralCode,
+        points: ADMIN_POINTS,
+        totalEarned: ADMIN_POINTS,
+        totalSpent: 0n,
+      },
+    });
+
+    seeded.push({
+      email: admin.email,
+      role: admin.role,
+      referralCode: admin.referralCode,
+    });
+  }
+
+  console.log(`✓ Admin accounts ready: ${seeded.length}`);
+  for (const admin of seeded) {
+    console.log(`  - ${admin.email} (${admin.role}) referral=${admin.referralCode}`);
+  }
+}
+
+async function ensureLegacyEnvAdmin() {
+  if (!env.SEED_ADMIN_EMAIL || !env.SEED_ADMIN_PASSWORD || !env.SEED_ADMIN_NAME) {
+    return;
+  }
+
+  if (ADMIN_USERS.some((admin) => admin.email === env.SEED_ADMIN_EMAIL)) {
+    return;
+  }
 
   const existing = await prisma.user.findUnique({
     where: { email: env.SEED_ADMIN_EMAIL },
     select: { id: true, referralCode: true },
   });
 
+  const passwordHash = await bcrypt.hash(env.SEED_ADMIN_PASSWORD, env.BCRYPT_ROUNDS);
+  const referralCode = existing?.referralCode || await uniqueReferralCode();
+
   const admin = await prisma.user.upsert({
     where: { email: env.SEED_ADMIN_EMAIL },
     update: {
-      password: hash,
+      password: passwordHash,
       name: env.SEED_ADMIN_NAME,
       role: 'SUPER_ADMIN',
       status: 'ACTIVE',
+      avatarUrl: buildAvatarUrl(env.SEED_ADMIN_NAME),
+      referralCode,
+      points: ADMIN_POINTS,
+      totalEarned: ADMIN_POINTS,
+      totalSpent: 0n,
+      freezeUntil: null,
+      banReason: null,
     },
     create: {
       email: env.SEED_ADMIN_EMAIL,
-      password: hash,
+      password: passwordHash,
       name: env.SEED_ADMIN_NAME,
       role: 'SUPER_ADMIN',
       status: 'ACTIVE',
-      referralCode: existing?.referralCode || randomCode(10),
-      points: 0n,
-      totalEarned: 0n,
+      avatarUrl: buildAvatarUrl(env.SEED_ADMIN_NAME),
+      referralCode,
+      points: ADMIN_POINTS,
+      totalEarned: ADMIN_POINTS,
       totalSpent: 0n,
     },
   });
 
-  console.log('✓ Admin ready:', admin.email);
+  console.log(`✓ Legacy env admin ready: ${admin.email}`);
 }
 
 async function ensurePackages() {
@@ -74,7 +187,7 @@ async function ensurePackages() {
       },
     });
   }
-  console.log('✓ Packages ready:', PACKAGES.length);
+  console.log(`✓ Packages ready: ${PACKAGES.length}`);
 }
 
 async function ensureWheel() {
@@ -105,12 +218,13 @@ async function ensureWheel() {
       });
     }
   }
-  console.log('✓ Wheel prizes ready:', WHEEL.length);
+  console.log(`✓ Wheel prizes ready: ${WHEEL.length}`);
 }
 
 (async () => {
   console.log('▶ Seeding TikBoost core data...');
-  await ensureAdmin();
+  await ensureAdminUsers();
+  await ensureLegacyEnvAdmin();
   await ensurePackages();
   await ensureWheel();
   console.log('✔ Seed finished successfully.');

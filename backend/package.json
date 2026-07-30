@@ -15,6 +15,9 @@
     "render:build": "npm ci && npm run prisma:generate && npm run check:syntax",
     "render:predeploy": "node src/scripts/render-predeploy.js"
   },
+  "prisma": {
+    "seed": "node src/scripts/seed.js"
+  },
   "dependencies": {
     "@prisma/client": "5.22.0",
     "bcrypt": "^5.1.1",

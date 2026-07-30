@@ -4,13 +4,13 @@ const ctrl = require('../controllers/admin.controller');
 const prisma = require('../config/db');
 const { AppError } = require('../utils/errors');
 const { signAccess, signRefresh, verifyRefresh } = require('../utils/jwt');
-const { truthyIp } = require('../utils/helpers');
+const { truthyIp, randomToken } = require('../utils/helpers');
 
 const ADMIN_ROLES = ['ADMIN', 'SUPER_ADMIN', 'MODERATOR', 'FINANCE'];
 
 async function issueAdminTokens(user) {
   const accessToken = signAccess({ sub: user.id, role: user.role });
-  const refreshToken = signRefresh({ sub: user.id, role: user.role, type: 'refresh' });
+  const refreshToken = signRefresh({ sub: user.id, role: user.role, type: 'refresh', jti: randomToken(16) });
   const payload = verifyRefresh(refreshToken);
   await prisma.refreshToken.create({
     data: {
