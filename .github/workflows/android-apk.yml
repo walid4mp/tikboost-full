@@ -9,6 +9,7 @@ on:
       - "flutter-app/**"
       - "admin-panel/**"
       - ".github/workflows/android-apk.yml"
+      - "render.yaml"
 
 jobs:
   backend-check:
@@ -43,6 +44,7 @@ jobs:
           JWT_REFRESH_SECRET: gha_refresh_secret_change_me
           ENABLE_GOOGLE_LOGIN: 'false'
           ENABLE_LEGACY_PASSWORD_RESET: 'false'
+          SEED_ADMIN_PASSWORD: StrongTempAdminPassword_123
         run: node -e "const app=require('./src/app'); console.log('backend ok', !!app)"
 
   build-apk:
@@ -72,7 +74,7 @@ jobs:
       - name: Flutter version
         run: flutter --version
 
-      - name: Generate missing Android project files if absent
+      - name: Generate / refresh Android project files
         run: flutter create . --platforms=android
 
       - name: Flutter clean
@@ -90,8 +92,8 @@ jobs:
       - name: Build release APK
         run: |
           flutter build apk --release \
-            --dart-define=API_BASE_URL=${{ vars.API_BASE_URL }} \
-            --dart-define=SOCKET_URL=${{ vars.SOCKET_URL }} \
+            --dart-define=API_BASE_URL=https://tikboost-api-v2.onrender.com/api \
+            --dart-define=SOCKET_URL=https://tikboost-api-v2.onrender.com \
             --dart-define=ENABLE_GOOGLE_LOGIN=false \
             --dart-define=ALLOW_LEGACY_PASSWORD_RESET=false
 

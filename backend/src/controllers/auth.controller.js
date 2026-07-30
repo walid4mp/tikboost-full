@@ -4,7 +4,12 @@ const prisma = require('../config/db');
 const env = require('../config/env');
 const { AppError } = require('../utils/errors');
 const { signAccess, signRefresh, verifyRefresh } = require('../utils/jwt');
-const { randomCode, truthyIp, asyncHandler } = require('../utils/helpers');
+const {
+  randomCode,
+  randomToken,
+  truthyIp,
+  asyncHandler,
+} = require('../utils/helpers');
 const { adjustPoints } = require('../services/points.service');
 const { notify } = require('../services/notifications.service');
 
@@ -83,7 +88,7 @@ const signup = asyncHandler(async (req, res) => {
     if (referrer) referredById = referrer.id;
   }
 
-  const user = await prisma.user.create({
+  const createdUser = await prisma.user.create({
     data: {
       email,
       password: hash,
@@ -97,12 +102,12 @@ const signup = asyncHandler(async (req, res) => {
     },
   });
 
-  await adjustPoints(user.id, 5000n, 'SIGNUP_BONUS', {
+  await adjustPoints(createdUser.id, 5000n, 'SIGNUP_BONUS', {
     note: 'Welcome bonus',
   });
 
   await notify(
-    user.id,
+    createdUser.id,
     'مرحباً بك في TikBoost 🎉',
     'حصلت على 5000 نقطة ترحيبية. ابدأ بإنشاء حملاتك!',
     'reward',
@@ -111,7 +116,7 @@ const signup = asyncHandler(async (req, res) => {
   if (referredById) {
     await adjustPoints(referredById, 2500n, 'REFERRAL_BONUS', {
       refType: 'User',
-      refId: user.id,
+      refId: createdUser.id,
       note: 'Referral signup',
     });
 
@@ -123,6 +128,7 @@ const signup = asyncHandler(async (req, res) => {
     );
   }
 
+  const user = await prisma.user.findUnique({ where: { id: createdUser.id } });
   const tokens = await issueTokens(user);
 
   res.status(201).json({
@@ -158,11 +164,12 @@ const login = asyncHandler(async (req, res) => {
     },
   });
 
-  const tokens = await issueTokens(user);
+  const freshUser = await prisma.user.findUnique({ where: { id: user.id } });
+  const tokens = await issueTokens(freshUser);
 
   res.json({
     success: true,
-    user: sanitize(user),
+    user: sanitize(freshUser),
     accessToken: tokens.accessToken,
     refreshToken: tokens.refreshToken,
   });
@@ -185,7 +192,7 @@ const googleLogin = asyncHandler(async (req, res) => {
   if (!user) {
     const hash = await bcrypt.hash(`google-${googleId}`, env.BCRYPT_ROUNDS);
 
-    user = await prisma.user.create({
+    const createdUser = await prisma.user.create({
       data: {
         email,
         password: hash,
@@ -199,9 +206,11 @@ const googleLogin = asyncHandler(async (req, res) => {
       },
     });
 
-    await adjustPoints(user.id, 5000n, 'SIGNUP_BONUS', {
+    await adjustPoints(createdUser.id, 5000n, 'SIGNUP_BONUS', {
       note: 'Google signup bonus',
     });
+
+    user = await prisma.user.findUnique({ where: { id: createdUser.id } });
   } else {
     assertUserCanLogin(user);
 
@@ -213,6 +222,8 @@ const googleLogin = asyncHandler(async (req, res) => {
         lastIp: truthyIp(req),
       },
     });
+
+    user = await prisma.user.findUnique({ where: { id: user.id } });
   }
 
   const tokens = await issueTokens(user);
@@ -265,11 +276,12 @@ const refresh = asyncHandler(async (req, res) => {
     data: { revoked: true },
   });
 
-  const tokens = await issueTokens(user);
+  const freshUser = await prisma.user.findUnique({ where: { id: user.id } });
+  const tokens = await issueTokens(freshUser);
 
   res.json({
     success: true,
-    user: sanitize(user),
+    user: sanitize(freshUser),
     accessToken: tokens.accessToken,
     refreshToken: tokens.refreshToken,
   });
@@ -373,6 +385,7 @@ async function issueTokens(user) {
     sub: user.id,
     role: user.role,
     type: 'refresh',
+    jti: randomToken(16),
   });
 
   const payload = verifyRefresh(refreshToken);
@@ -391,9 +404,7 @@ async function issueTokens(user) {
 function sanitize(user) {
   if (!user) return null;
 
-  const plain =
-    typeof user.toJSON === 'function' ? user.toJSON() : { ...user };
-
+  const plain = typeof user.toJSON === 'function' ? user.toJSON() : { ...user };
   delete plain.password;
 
   return toSerializable(plain);
