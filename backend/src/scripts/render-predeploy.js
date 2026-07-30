@@ -34,16 +34,24 @@ function hasMigrations() {
   });
 }
 
+function syncDatabase() {
+  if (!hasMigrations()) {
+    run('npx', ['prisma', 'db', 'push', '--schema', schemaPath]);
+    return;
+  }
+
+  try {
+    run('npx', ['prisma', 'migrate', 'deploy', '--schema', schemaPath]);
+  } catch (error) {
+    console.warn('prisma migrate deploy failed, falling back to prisma db push for compatibility.');
+    run('npx', ['prisma', 'db', 'push', '--schema', schemaPath]);
+  }
+}
+
 function main() {
   assertRenderDatabaseUrl();
   run('npx', ['prisma', 'generate', '--schema', schemaPath]);
-
-  if (hasMigrations()) {
-    run('npx', ['prisma', 'migrate', 'deploy', '--schema', schemaPath]);
-  } else {
-    run('npx', ['prisma', 'db', 'push', '--schema', schemaPath]);
-  }
-
+  syncDatabase();
   run('node', [path.join(__dirname, 'seed.js')]);
 }
 

@@ -98,6 +98,7 @@ model Campaign {
   status       CampaignStatus @default(ACTIVE)
   targetUrl    String
   targetUsername String
+  commentText  String?
   quantity     Int
   completed    Int            @default(0)
   pointsCost   BigInt
