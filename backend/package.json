@@ -13,7 +13,8 @@
     "prisma:migrate:deploy": "prisma migrate deploy --schema=prisma/schema.prisma",
     "check:syntax": "find src -name '*.js' -print0 | xargs -0 -n1 node --check",
     "render:build": "npm ci && npm run prisma:generate && npm run check:syntax",
-    "render:predeploy": "node src/scripts/render-predeploy.js"
+    "render:predeploy": "node src/scripts/render-predeploy.js",
+    "test": "node --test --test-concurrency=1 test/**/*.test.js"
   },
   "prisma": {
     "seed": "node src/scripts/seed.js"

@@ -152,7 +152,7 @@ class _MyCampaignsState extends ConsumerState<_MyCampaigns> {
       for (final c in items)
         ListTile(
           leading: const Icon(Icons.bolt, color: AppColors.red),
-          title: Text('${c['type']} • @${c['targetUsername']}'),
+          title: Text('${c['type']} • ${c['targetUsername']}'),
           subtitle: Text('${c['completed']}/${c['quantity']} • ${c['status']}'),
           trailing: Text('${c['perTaskReward']}',
             style: const TextStyle(color: AppColors.success, fontWeight: FontWeight.w700)),

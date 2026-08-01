@@ -9,6 +9,9 @@ const TIKTOK_HOSTS = new Set([
 ]);
 
 const TIKTOK_SHORT_HOSTS = new Set(['vt.tiktok.com', 'vm.tiktok.com']);
+const TIKTOK_RESOLVE_TIMEOUT_MS = 12000;
+const TIKTOK_USER_AGENT =
+  'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36';
 
 function randomCode(len = 8) {
   return crypto
@@ -46,51 +49,155 @@ function normalizeTikTokUrl(input) {
   return String(input || '').trim();
 }
 
-function parseTikTokTarget(input) {
+function normalizeTikTokPath(pathname) {
+  const compact = pathname.replace(/\/+/g, '/');
+  if (!compact || compact === '/') return '/';
+  return compact.replace(/\/+$/, '') || '/';
+}
+
+function sanitizeTikTokUrl(input) {
+  const url = input instanceof URL ? new URL(input.toString()) : new URL(String(input));
+  url.hash = '';
+  url.search = '';
+  url.hostname = url.hostname.toLowerCase() === 'tiktok.com' ? 'www.tiktok.com' : url.hostname.toLowerCase();
+  url.pathname = normalizeTikTokPath(url.pathname);
+  return url.toString();
+}
+
+function isSupportedTikTokHost(hostname) {
+  return TIKTOK_HOSTS.has(String(hostname || '').toLowerCase());
+}
+
+function isTikTokShortLink(url) {
+  const host = url.hostname.toLowerCase();
+  const pathname = normalizeTikTokPath(url.pathname);
+  return TIKTOK_SHORT_HOSTS.has(host) || /^\/t\/[^/]+$/i.test(pathname);
+}
+
+function extractTikTokMetadata(url) {
+  const pathname = normalizeTikTokPath(url.pathname);
+  const decoded = decodeURIComponent(pathname);
+  const videoMatch = decoded.match(/^\/@([A-Za-z0-9._]{2,64})\/video\/(\d+)$/i);
+  if (videoMatch) {
+    return {
+      targetUsername: `@${videoMatch[1].toLowerCase()}`,
+      videoId: videoMatch[2],
+    };
+  }
+
+  const profileMatch = decoded.match(/^\/@([A-Za-z0-9._]{2,64})$/i);
+  if (profileMatch) {
+    return {
+      targetUsername: `@${profileMatch[1].toLowerCase()}`,
+      videoId: null,
+    };
+  }
+
+  return null;
+}
+
+async function resolveTikTokCanonicalUrl(input, options = {}) {
+  const fetchImpl = options.fetchImpl || globalThis.fetch;
+  if (typeof fetchImpl !== 'function') {
+    throw new Error('fetch unavailable');
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(
+    () => controller.abort(new Error('TikTok redirect resolution timed out')),
+    options.timeoutMs || TIKTOK_RESOLVE_TIMEOUT_MS,
+  );
+
+  try {
+    const response = await fetchImpl(String(input), {
+      method: 'GET',
+      redirect: 'follow',
+      headers: {
+        'user-agent': options.userAgent || TIKTOK_USER_AGENT,
+        accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      },
+      signal: controller.signal,
+    });
+
+    if (!response?.url) {
+      throw new Error('Missing redirect target');
+    }
+
+    try {
+      await response.body?.cancel?.();
+    } catch {
+      // ignore body cancellation errors
+    }
+
+    return sanitizeTikTokUrl(response.url);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function parseTikTokTarget(input, options = {}) {
   const raw = normalizeTikTokUrl(input);
   if (!raw) {
     return { valid: false, reason: 'empty' };
   }
 
+  let initialUrl;
   try {
-    const url = new URL(raw);
-    if (!/^https?:$/i.test(url.protocol)) {
-      return { valid: false, reason: 'protocol' };
-    }
-
-    const host = url.hostname.toLowerCase();
-    if (!TIKTOK_HOSTS.has(host)) {
-      return { valid: false, reason: 'host' };
-    }
-
-    const usernameMatch = url.pathname.match(/@([A-Za-z0-9._]{2,30})/);
-    if (usernameMatch) {
-      return {
-        valid: true,
-        targetUrl: raw,
-        targetUsername: `@${usernameMatch[1].toLowerCase()}`,
-        isShortLink: false,
-      };
-    }
-
-    if (TIKTOK_SHORT_HOSTS.has(host)) {
-      return {
-        valid: true,
-        targetUrl: raw,
-        targetUsername: raw,
-        isShortLink: true,
-      };
-    }
-
-    return {
-      valid: true,
-      targetUrl: raw,
-      targetUsername: raw,
-      isShortLink: false,
-    };
+    initialUrl = new URL(raw);
   } catch {
     return { valid: false, reason: 'parse' };
   }
+
+  if (!/^https?:$/i.test(initialUrl.protocol)) {
+    return { valid: false, reason: 'protocol' };
+  }
+
+  if (!isSupportedTikTokHost(initialUrl.hostname)) {
+    return { valid: false, reason: 'host' };
+  }
+
+  const isShortLink = isTikTokShortLink(initialUrl);
+  let canonicalUrl = sanitizeTikTokUrl(initialUrl);
+
+  if (isShortLink) {
+    try {
+      const resolver = options.resolveFinalUrl || ((value) => resolveTikTokCanonicalUrl(value, options));
+      canonicalUrl = await resolver(canonicalUrl);
+    } catch {
+      return { valid: false, reason: 'redirect' };
+    }
+  }
+
+  let finalUrl;
+  try {
+    finalUrl = new URL(canonicalUrl);
+  } catch {
+    return { valid: false, reason: 'parse' };
+  }
+
+  if (!/^https?:$/i.test(finalUrl.protocol)) {
+    return { valid: false, reason: 'protocol' };
+  }
+
+  if (!isSupportedTikTokHost(finalUrl.hostname)) {
+    return { valid: false, reason: 'host' };
+  }
+
+  const metadata = extractTikTokMetadata(finalUrl);
+  if (!metadata) {
+    return { valid: false, reason: 'path' };
+  }
+
+  const targetUrl = sanitizeTikTokUrl(finalUrl);
+  return {
+    valid: true,
+    targetUrl,
+    canonicalUrl: targetUrl,
+    targetUsername: metadata.targetUsername,
+    username: metadata.targetUsername,
+    videoId: metadata.videoId,
+    isShortLink,
+  };
 }
 
 function asyncHandler(fn) {
@@ -106,6 +213,9 @@ module.exports = {
   truthyIp,
   paginate,
   normalizeTikTokUrl,
+  sanitizeTikTokUrl,
+  extractTikTokMetadata,
+  resolveTikTokCanonicalUrl,
   parseTikTokTarget,
   asyncHandler,
 };

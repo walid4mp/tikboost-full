@@ -28,7 +28,7 @@ const listUsers = asyncHandler(async (req, res) => {
   const [items, total] = await Promise.all([
     prisma.user.findMany({
       where, orderBy: { createdAt: 'desc' }, skip, take,
-      select: { password: false, id: true, email: true, name: true, role: true, status: true, points: true, createdAt: true, freezeUntil: true, referralCode: true, lastLoginAt: true, avatarUrl: true },
+      select: { id: true, email: true, name: true, role: true, status: true, points: true, createdAt: true, freezeUntil: true, referralCode: true, lastLoginAt: true, avatarUrl: true },
     }),
     prisma.user.count({ where }),
   ]);

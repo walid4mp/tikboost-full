@@ -50,7 +50,7 @@ const create = asyncHandler(async (req, res) => {
   const targetUrl = String(req.body.targetUrl || '').trim();
   const commentText = String(req.body.commentText || '').trim();
 
-  const parsedTarget = parseTikTokTarget(targetUrl);
+  const parsedTarget = await parseTikTokTarget(targetUrl);
   if (!parsedTarget.valid) {
     throw new AppError('Invalid TikTok URL', 400);
   }
@@ -103,7 +103,15 @@ const create = asyncHandler(async (req, res) => {
     },
   });
 
-  res.status(201).json({ success: true, campaign });
+  res.status(201).json({
+    success: true,
+    campaign: {
+      ...campaign,
+      pointsCost: campaign.pointsCost.toString(),
+      perTaskReward: campaign.perTaskReward.toString(),
+      videoId: parsedTarget.videoId,
+    },
+  });
 });
 
 const mine = asyncHandler(async (req, res) => {
