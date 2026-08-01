@@ -2,7 +2,6 @@ const r = require('express').Router();
 const { authRequired, requireRole } = require('../middleware/auth');
 const ctrl = require('../controllers/admin.controller');
 
-// All admin endpoints require at least MODERATOR
 r.use(authRequired, requireRole('MODERATOR','FINANCE','ADMIN','SUPER_ADMIN'));
 
 r.get   ('/users',                                 ctrl.listUsers);
@@ -26,6 +25,11 @@ r.get   ('/reports',                               ctrl.listReports);
 r.post  ('/reports/:id/resolve',                   ctrl.resolveReport);
 
 r.post  ('/notifications/send',                    ctrl.sendNotification);
+
+r.get   ('/settings/rewards',                      ctrl.getRewardSettings);
+r.put   ('/settings/rewards',                      ctrl.updateRewardSettings);
+r.get   ('/wheel/prizes',                          ctrl.listWheelPrizes);
+r.put   ('/wheel/prizes/:id',                      ctrl.updateWheelPrize);
 
 r.get   ('/stats',                                 ctrl.stats);
 r.get   ('/stats/top-users',                       ctrl.topUsers);

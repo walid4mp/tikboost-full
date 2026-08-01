@@ -4,6 +4,7 @@ const { AppError } = require('../utils/errors');
 const { adjustPoints } = require('../services/points.service');
 const { notify, broadcast } = require('../services/notifications.service');
 const { truthyIp, paginate, asyncHandler } = require('../utils/helpers');
+const { getSettings, updateSettings } = require('../services/appSettings.service');
 
 async function logAdmin(actor, action, target, details) {
   await prisma.adminLog.create({
@@ -205,6 +206,36 @@ const sendNotification = asyncHandler(async (req, res) => {
   res.json({ success: true });
 });
 
+const getRewardSettings = asyncHandler(async (_req, res) => {
+  const settings = await getSettings();
+  res.json({ success: true, settings });
+});
+
+const updateRewardSettings = asyncHandler(async (req, res) => {
+  const settings = await updateSettings(req.body || {});
+  await logAdmin(req.user, 'SETTINGS_REWARDS_UPDATE', null, { patch: req.body || {} });
+  res.json({ success: true, settings });
+});
+
+const listWheelPrizes = asyncHandler(async (_req, res) => {
+  const items = await prisma.wheelPrize.findMany({ orderBy: { sortOrder: 'asc' } });
+  res.json({ success: true, items: items.map((p) => ({ ...p, points: p.points.toString() })) });
+});
+
+const updateWheelPrize = asyncHandler(async (req, res) => {
+  const data = {};
+  if (req.body.label !== undefined) data.label = String(req.body.label).trim();
+  if (req.body.points !== undefined) data.points = BigInt(req.body.points);
+  if (req.body.weight !== undefined) data.weight = parseInt(req.body.weight, 10);
+  if (req.body.color !== undefined) data.color = String(req.body.color).trim();
+  if (req.body.isActive !== undefined) data.isActive = !!req.body.isActive;
+  if (req.body.sortOrder !== undefined) data.sortOrder = parseInt(req.body.sortOrder, 10);
+
+  const prize = await prisma.wheelPrize.update({ where: { id: req.params.id }, data });
+  await logAdmin(req.user, 'WHEEL_PRIZE_UPDATE', prize.id, { data });
+  res.json({ success: true, prize: { ...prize, points: prize.points.toString() } });
+});
+
 // ===== Stats =====
 const stats = asyncHandler(async (_req, res) => {
   const [users, campaigns, completedCampaigns, pendingPurchases, approvedPurchases, tasksDone, totalPoints, totalReferrals] = await Promise.all([
@@ -291,5 +322,6 @@ module.exports = {
   listPurchases, approvePurchase, rejectPurchase,
   listReports, resolveReport,
   sendNotification,
+  getRewardSettings, updateRewardSettings, listWheelPrizes, updateWheelPrize,
   stats, topUsers, chart, adminLogs,
 };

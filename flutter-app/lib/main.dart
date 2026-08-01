@@ -21,12 +21,14 @@ import 'screens/lucky_wheel_screen.dart';
 
 import 'providers/auth_provider.dart';
 import 'providers/theme_provider.dart';
+import 'services/admob_service.dart';
 import 'services/socket_service.dart';
 import 'config/app_config.dart';
 import 'config/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await AdMobService.instance.initialize();
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -59,28 +61,26 @@ class TikBoostApp extends ConsumerWidget {
         return null;
       },
       routes: [
-        GoRoute(path: '/',          builder: (_, __) => const SplashScreen()),
-        GoRoute(path: '/login',     builder: (_, __) => const LoginScreen()),
-        GoRoute(path: '/signup',    builder: (_, __) => const SignupScreen()),
-        GoRoute(path: '/forgot',    builder: (_, __) => const ResetPasswordScreen()),
-
+        GoRoute(path: '/', builder: (_, __) => const SplashScreen()),
+        GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
+        GoRoute(path: '/signup', builder: (_, __) => const SignupScreen()),
+        GoRoute(path: '/forgot', builder: (_, __) => const ResetPasswordScreen()),
         ShellRoute(
           builder: (_, __, child) => MainShell(child: child),
           routes: [
-            GoRoute(path: '/home',           builder: (_, __) => const HomeScreen()),
-            GoRoute(path: '/earn',           builder: (_, __) => const EarnScreen()),
-            GoRoute(path: '/create',         builder: (_, __) => const CreateCampaignScreen()),
-            GoRoute(path: '/shop',           builder: (_, __) => const ShopScreen()),
-            GoRoute(path: '/profile',        builder: (_, __) => const ProfileScreen()),
+            GoRoute(path: '/home', builder: (_, __) => const HomeScreen()),
+            GoRoute(path: '/earn', builder: (_, __) => const EarnScreen()),
+            GoRoute(path: '/create', builder: (_, __) => const CreateCampaignScreen()),
+            GoRoute(path: '/shop', builder: (_, __) => const ShopScreen()),
+            GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
           ],
         ),
-
-        GoRoute(path: '/campaigns',       builder: (_, __) => const MyCampaignsScreen()),
-        GoRoute(path: '/referrals',       builder: (_, __) => const ReferralsScreen()),
-        GoRoute(path: '/notifications',   builder: (_, __) => const NotificationsScreen()),
-        GoRoute(path: '/settings',        builder: (_, __) => const SettingsScreen()),
-        GoRoute(path: '/contact',         builder: (_, __) => const ContactScreen()),
-        GoRoute(path: '/wheel',           builder: (_, __) => const LuckyWheelScreen()),
+        GoRoute(path: '/campaigns', builder: (_, __) => const MyCampaignsScreen()),
+        GoRoute(path: '/referrals', builder: (_, __) => const ReferralsScreen()),
+        GoRoute(path: '/notifications', builder: (_, __) => const NotificationsScreen()),
+        GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
+        GoRoute(path: '/contact', builder: (_, __) => const ContactScreen()),
+        GoRoute(path: '/wheel', builder: (_, __) => const LuckyWheelScreen()),
       ],
     );
 
@@ -99,7 +99,6 @@ class TikBoostApp extends ConsumerWidget {
   }
 }
 
-// Helper to refresh router on auth changes
 class GoRouterRefreshStream extends ChangeNotifier {
   GoRouterRefreshStream(AuthState s) {
     s.addListener(notifyListeners);

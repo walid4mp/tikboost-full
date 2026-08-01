@@ -54,8 +54,10 @@ model User {
   reportsMade   Report[]        @relation("Reporter")
   reportsAgainst Report[]       @relation("Reported")
   logs          AdminLog[]      @relation("LogActor")
-  spinLogs      SpinLog[]
-  refreshTokens RefreshToken[]
+  spinLogs       SpinLog[]
+  refreshTokens  RefreshToken[]
+  rewardSessions RewardSession[]
+  dailyUsage     DailyUsage[]
 
   @@index([email])
   @@index([referralCode])
@@ -276,13 +278,68 @@ model WheelPrize {
 }
 
 model SpinLog {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  prizeId   String
-  prize     WheelPrize @relation(fields: [prizeId], references: [id])
-  points    BigInt
-  createdAt DateTime @default(now())
+  id          String     @id @default(uuid())
+  userId      String
+  user        User       @relation(fields: [userId], references: [id])
+  prizeId     String
+  prize       WheelPrize @relation(fields: [prizeId], references: [id])
+  points      BigInt
+  isExtraSpin Boolean    @default(false)
+  createdAt   DateTime   @default(now())
 
   @@index([userId, createdAt])
+}
+
+model AppSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  valueJson Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum RewardSessionType {
+  DAILY_POINTS
+  EXTRA_WHEEL_SPIN
+}
+
+enum RewardSessionStatus {
+  STARTED
+  CLAIMED
+  EXPIRED
+}
+
+model RewardSession {
+  id         String              @id @default(uuid())
+  userId     String
+  user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type       RewardSessionType
+  status     RewardSessionStatus @default(STARTED)
+  points     BigInt              @default(0)
+  extraSpins Int                 @default(0)
+  dayKey     DateTime
+  expiresAt  DateTime
+  claimedAt  DateTime?
+  createdAt  DateTime            @default(now())
+
+  @@index([userId, dayKey, type])
+  @@index([userId, status, expiresAt])
+}
+
+model DailyUsage {
+  id                    String   @id @default(uuid())
+  userId                String
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dayKey                DateTime
+  rewardedAdsClaimed    Int      @default(0)
+  rewardedAdPoints      BigInt   @default(0)
+  wheelDailySpinsUsed   Int      @default(0)
+  wheelExtraSpinsEarned Int      @default(0)
+  wheelExtraSpinsUsed   Int      @default(0)
+  wheelPointsWon        BigInt   @default(0)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@unique([userId, dayKey])
+  @@index([dayKey])
 }

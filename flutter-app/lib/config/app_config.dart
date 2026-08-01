@@ -1,6 +1,6 @@
 class AppConfig {
   static const String appName = 'TikBoost';
-  static const String tagline = 'اكسب النقاط وروج لحسابك بسهولة.';
+  static const String tagline = 'اكسب النقاط وروّج لحسابك بسهولة.';
 
   static const String apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
@@ -24,6 +24,8 @@ class AppConfig {
 
   static const String whatsapp = '+213559658947';
   static const String email = 'walid300105@gmail.com';
+  static const String privacyUrl = 'https://tikboost.app/privacy';
+  static const String termsUrl = 'https://tikboost.app/terms';
 
   static String get whatsappChatUrl =>
       'https://wa.me/${whatsapp.replaceAll(RegExp(r'[^0-9]'), '')}';

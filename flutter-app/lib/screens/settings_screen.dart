@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../config/app_config.dart';
 import '../config/app_theme.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = ref.watch(themeProvider);
@@ -38,12 +40,12 @@ class SettingsScreen extends ConsumerWidget {
           ListTile(
             leading: const Icon(Icons.privacy_tip, color: AppColors.blue),
             title: const Text('سياسة الخصوصية'),
-            onTap: () => launchUrl(Uri.parse('https://example.com/privacy'), mode: LaunchMode.externalApplication),
+            onTap: () => launchUrl(Uri.parse(AppConfig.privacyUrl), mode: LaunchMode.externalApplication),
           ),
           ListTile(
             leading: const Icon(Icons.description, color: AppColors.blue),
             title: const Text('الشروط والأحكام'),
-            onTap: () => launchUrl(Uri.parse('https://example.com/terms'),  mode: LaunchMode.externalApplication),
+            onTap: () => launchUrl(Uri.parse(AppConfig.termsUrl), mode: LaunchMode.externalApplication),
           ),
           ListTile(
             leading: const Icon(Icons.support_agent, color: AppColors.red),
@@ -60,10 +62,12 @@ class SettingsScreen extends ConsumerWidget {
             },
           ),
           const SizedBox(height: 20),
-          const Center(child: Text(
-            'TikBoost v1.0.0',
-            style: TextStyle(color: AppColors.textMuted, fontSize: 12),
-          )),
+          const Center(
+            child: Text(
+              'TikBoost v1.1.0',
+              style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+            ),
+          ),
           const SizedBox(height: 20),
         ],
       ),
