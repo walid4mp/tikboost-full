@@ -15,7 +15,7 @@
     "render:build": "npm ci && npm run prisma:generate && npm run check:syntax",
     "render:predeploy": "node src/scripts/render-predeploy.js",
     "test:prepare": "DOTENV_CONFIG_PATH=.env.test node -r dotenv/config src/scripts/test-prepare.js",
-    "test": "DOTENV_CONFIG_PATH=.env.test node -r dotenv/config --test --test-concurrency=1 test/**/*.test.js",
+    "test": "DOTENV_CONFIG_PATH=.env.test node -r dotenv/config --test --test-concurrency=1 test/*.test.js",
     "test:ci": "npm run test:prepare && npm test"
   },
   "prisma": {
