@@ -1,5 +1,8 @@
 name: Build and Release Android Artifacts
 
+permissions:
+  contents: write
+
 on:
   workflow_dispatch:
   push:
