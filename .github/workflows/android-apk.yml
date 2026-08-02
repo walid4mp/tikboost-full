@@ -1,4 +1,4 @@
-name: Build and Release Android APK
+name: Build and Release Android Artifacts
 
 on:
   workflow_dispatch:
@@ -39,7 +39,7 @@ jobs:
       JWT_ACCESS_SECRET: gha_access_secret_change_me
       JWT_REFRESH_SECRET: gha_refresh_secret_change_me
       ENABLE_GOOGLE_LOGIN: 'false'
-      ALLOW_LEGACY_PASSWORD_RESET: 'false'
+      ENABLE_LEGACY_PASSWORD_RESET: 'false'
       SEED_ADMIN_PASSWORD: StrongTempAdminPassword_123
       SEED_ADMIN_EMAIL: admin@tikboost.app
       NODE_ENV: test
@@ -58,14 +58,8 @@ jobs:
       - name: Install backend dependencies
         run: npm ci
 
-      - name: Generate Prisma client
-        run: npm run prisma:generate
-
-      - name: Apply Prisma migrations
-        run: npm run prisma:migrate:deploy
-
-      - name: Seed database
-        run: npm run seed
+      - name: Run backend CI tests
+        run: npm run test:ci
 
       - name: Check backend syntax
         run: npm run check:syntax
@@ -122,6 +116,14 @@ jobs:
             --dart-define=ENABLE_GOOGLE_LOGIN=false \
             --dart-define=ALLOW_LEGACY_PASSWORD_RESET=false
 
+      - name: Build release AAB
+        run: |
+          flutter build appbundle --release \
+            --dart-define=API_BASE_URL=https://tikboost-api-v2.onrender.com/api \
+            --dart-define=SOCKET_URL=https://tikboost-api-v2.onrender.com \
+            --dart-define=ENABLE_GOOGLE_LOGIN=false \
+            --dart-define=ALLOW_LEGACY_PASSWORD_RESET=false
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
@@ -129,10 +131,19 @@ jobs:
           path: flutter-app/build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
 
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tikboost-release-aab
+          path: flutter-app/build/app/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+
       - name: Publish GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: flutter-app/build/app/outputs/flutter-apk/app-release.apk
+          files: |
+            flutter-app/build/app/outputs/flutter-apk/app-release.apk
+            flutter-app/build/app/outputs/bundle/release/app-release.aab
           generate_release_notes: true
           fail_on_unmatched_files: true

@@ -14,7 +14,9 @@
     "check:syntax": "find src -name '*.js' -print0 | xargs -0 -n1 node --check",
     "render:build": "npm ci && npm run prisma:generate && npm run check:syntax",
     "render:predeploy": "node src/scripts/render-predeploy.js",
-    "test": "node --test --test-concurrency=1 test/**/*.test.js"
+    "test:prepare": "DOTENV_CONFIG_PATH=.env.test node -r dotenv/config src/scripts/test-prepare.js",
+    "test": "DOTENV_CONFIG_PATH=.env.test node -r dotenv/config --test --test-concurrency=1 test/**/*.test.js",
+    "test:ci": "npm run test:prepare && npm test"
   },
   "prisma": {
     "seed": "node src/scripts/seed.js"

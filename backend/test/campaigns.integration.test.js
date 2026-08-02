@@ -173,3 +173,47 @@ test('rejects COMMENTS campaigns without commentText', async () => {
   assert.equal(response.status, 400);
   assert.match(body.message, /Comment text is required/i);
 });
+
+test('cancel refunds unused campaign budget based on spend cost not reward amount', async () => {
+  const before = await prisma.user.findUnique({
+    where: { id: ownerId },
+    select: { points: true },
+  });
+
+  const { response, body } = await api('/api/campaigns', {
+    method: 'POST',
+    headers: { authorization: `Bearer ${ownerToken}` },
+    body: JSON.stringify({
+      type: 'LIKES',
+      targetUrl: 'https://vm.tiktok.com/likesdemo/?share=1',
+      quantity: 10,
+    }),
+  });
+
+  assert.equal(response.status, 201, JSON.stringify(body));
+  const campaignId = body.campaign.id;
+
+  const afterCreate = await prisma.user.findUnique({
+    where: { id: ownerId },
+    select: { points: true },
+  });
+  assert.equal(afterCreate.points.toString(), (BigInt(before.points) - 200n).toString());
+
+  await prisma.campaign.update({
+    where: { id: campaignId },
+    data: { completed: 3 },
+  });
+
+  const cancelResult = await api(`/api/campaigns/${campaignId}/cancel`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${ownerToken}` },
+  });
+
+  assert.equal(cancelResult.response.status, 200, JSON.stringify(cancelResult.body));
+
+  const afterCancel = await prisma.user.findUnique({
+    where: { id: ownerId },
+    select: { points: true },
+  });
+  assert.equal(afterCancel.points.toString(), (BigInt(before.points) - 60n).toString());
+});

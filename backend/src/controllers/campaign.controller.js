@@ -140,7 +140,8 @@ const cancel = asyncHandler(async (req, res) => {
   }
 
   const remaining = BigInt(campaign.quantity) - BigInt(campaign.completed);
-  const refund = remaining * BigInt(campaign.perTaskReward);
+  const unitCost = BigInt(campaign.pointsCost) / BigInt(campaign.quantity);
+  const refund = remaining * unitCost;
 
   if (refund > 0n) {
     await adjustPoints(req.user.id, refund, 'REFUND', {
