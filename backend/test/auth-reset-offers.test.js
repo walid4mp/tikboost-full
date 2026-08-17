@@ -87,11 +87,11 @@ test('forgot/reset password flow: generic response, token works once, new passwo
 
   // Reset with token
   const newPassword = 'NewPassword456!';
-  const r1 = await api('/auth/reset', { method: 'POST', body: { email, code: resetCode, newPassword } });
+  const r1 = await api('/auth/reset', { method: 'POST', body: { email, code: resetCode, newPassword, confirmPassword: newPassword } });
   assert.equal(r1.status, 200);
 
   // Token cannot be reused
-  const r2 = await api('/auth/reset', { method: 'POST', body: { email, code: resetCode, newPassword } });
+  const r2 = await api('/auth/reset', { method: 'POST', body: { email, code: resetCode, newPassword, confirmPassword: newPassword } });
   assert.equal(r2.status, 400);
 
   // Old password now fails
