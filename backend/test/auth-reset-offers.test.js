@@ -36,9 +36,11 @@ global.fetch = async (url, options = {}) => {
 
 const prisma = require('../src/config/db');
 const app = require('../src/app');
+const { initMailer } = require('../src/services/mailer.service');
 
 let server, base;
 test.before(async () => {
+  await initMailer();
   server = http.createServer(app);
   await new Promise((r) => server.listen(0, r));
   base = `http://127.0.0.1:${server.address().port}/api`;
