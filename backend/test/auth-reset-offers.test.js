@@ -5,6 +5,35 @@ const crypto = require('node:crypto');
 const bcrypt = require('bcrypt');
 
 process.env.NODE_ENV = 'test';
+process.env.EMAIL_PROVIDER = 'resend';
+process.env.EMAIL_API_KEY = 're_test_dummykey_ABCDEFGHIJKLMNOPQRST';
+process.env.MAIL_FROM = 'TikBoost <onboarding@resend.dev>';
+
+let capturedResetCode = null;
+
+const originalFetch = global.fetch;
+global.fetch = async (url, options = {}) => {
+  if (String(url) === 'https://api.resend.com/emails' && options.body) {
+    const body = JSON.parse(options.body);
+
+    const match =
+      String(body.text || '').match(/هو:\s*(\d{6})/) ||
+      String(body.html || '').match(/>(\d{6})<\/p>/);
+
+    if (match) capturedResetCode = match[1];
+
+    return new Response(
+      JSON.stringify({ id: 'test-resend-message-id' }),
+      {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+  }
+
+  return originalFetch(url, options);
+};
+
 const prisma = require('../src/config/db');
 const app = require('../src/app');
 
@@ -44,7 +73,10 @@ test('forgot/reset password flow: generic response, token works once, new passwo
   const f1 = await api('/auth/forgot', { method: 'POST', body: { email } });
   assert.equal(f1.status, 200);
   assert.equal(f1.data.success, true);
-  assert.ok(f1.data.resetCode, 'test env must expose reset code');
+  assert.equal(typeof f1.data.resetCode, 'undefined');
+
+  const resetCode = capturedResetCode;
+  assert.ok(resetCode, 'test Resend transport must capture the reset code');
 
   const f2 = await api('/auth/forgot', { method: 'POST', body: { email: `nope-${uniq()}@example.com` } });
   assert.equal(f2.status, 200);
@@ -53,11 +85,11 @@ test('forgot/reset password flow: generic response, token works once, new passwo
 
   // Reset with token
   const newPassword = 'NewPassword456!';
-  const r1 = await api('/auth/reset', { method: 'POST', body: { email, code: f1.data.resetCode, newPassword } });
+  const r1 = await api('/auth/reset', { method: 'POST', body: { email, code: resetCode, newPassword } });
   assert.equal(r1.status, 200);
 
   // Token cannot be reused
-  const r2 = await api('/auth/reset', { method: 'POST', body: { email, code: f1.data.resetCode, newPassword } });
+  const r2 = await api('/auth/reset', { method: 'POST', body: { email, code: resetCode, newPassword } });
   assert.equal(r2.status, 400);
 
   // Old password now fails
