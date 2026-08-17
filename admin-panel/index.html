@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TikBoost — Admin Panel</title>
+  <link rel="stylesheet" href="css/admin.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <!-- Login -->
+  <div id="loginPage" class="login-wrap">
+    <form id="loginForm" class="login-card">
+      <div class="brand">
+        <div class="brand-logo">T</div>
+        <h1>TikBoost <span>Admin</span></h1>
+      </div>
+      <p class="muted">لوحة إدارة متكاملة — إدارة المستخدمين، الحملات، النقاط، المدفوعات والإحصائيات.</p>
+      <label>البريد الإلكتروني</label>
+      <input id="loginEmail" type="email" required placeholder="admin@tikboost.app" />
+      <label>كلمة المرور</label>
+      <input id="loginPassword" type="password" required placeholder="••••••" />
+      <button id="loginBtn" type="submit">دخول</button>
+      <p id="loginError" class="err"></p>
+      <p class="seed-hint">حساب المدير الرئيسي: <b>admin1@tikboost.app</b> (SUPER_ADMIN)</p>
+    </form>
+  </div>
+
+  <!-- Dashboard -->
+  <aside id="sidebar" class="sidebar hidden">
+    <div class="brand">
+      <div class="brand-logo">T</div>
+      <div>
+        <h2>TikBoost</h2>
+        <small>Admin Panel v1.0</small>
+      </div>
+    </div>
+    <nav>
+      <button data-page="dashboard" class="nav-btn active"><i>📊</i> الإحصائيات</button>
+      <button data-page="users"     class="nav-btn"><i>👥</i> المستخدمون</button>
+      <button data-page="campaigns" class="nav-btn"><i>🚀</i> الحملات</button>
+      <button data-page="purchases" class="nav-btn"><i>💳</i> المدفوعات</button>
+      <button data-page="reports"   class="nav-btn"><i>🚩</i> البلاغات</button>
+      <button data-page="notify"    class="nav-btn"><i>🔔</i> إرسال إشعار</button>
+      <button data-page="logs"      class="nav-btn"><i>📜</i> سجلات الإدارة</button>
+      <button data-page="rewards"   class="nav-btn"><i>🎯</i> الإعلانات والمكافآت</button>
+      <button data-page="packages"  class="nav-btn"><i>📦</i> الباقات</button>
+      <button data-page="offers"    class="nav-btn"><i>🎁</i> العروض</button>
+      <button data-page="adAnalytics" class="nav-btn"><i>📺</i> إحصائيات الإعلانات</button>
+      <button data-page="vip" class="nav-btn"><i>👑</i> VIP PRO</button>
+      <button data-page="admins" class="nav-btn"><i>🛡️</i> إدارة المدراء</button>
+      <button data-page="passwordResets" class="nav-btn"><i>🔐</i> استعادة كلمات المرور</button>
+    </nav>
+    <div class="side-foot">
+      <div class="me" id="meBox"><span></span></div>
+      <button id="logoutBtn" class="logout">تسجيل الخروج</button>
+    </div>
+  </aside>
+
+  <main id="main" class="main hidden">
+    <header class="topbar">
+      <button id="toggleSidebar" class="hamburger">☰</button>
+      <h1 id="pageTitle">الإحصائيات</h1>
+      <div class="topbar-right">
+        <span class="api-status" id="apiStatus">• متصل</span>
+      </div>
+    </header>
+
+    <!-- DASHBOARD -->
+    <section class="page" data-page="dashboard">
+      <div class="cards">
+        <div class="kpi"><div class="kpi-label">المستخدمون</div><div class="kpi-value" id="kpiUsers">—</div></div>
+        <div class="kpi"><div class="kpi-label">الحملات</div><div class="kpi-value" id="kpiCampaigns">—</div></div>
+        <div class="kpi"><div class="kpi-label">المهام المنجزة</div><div class="kpi-value" id="kpiTasks">—</div></div>
+        <div class="kpi accent"><div class="kpi-label">الأرباح</div><div class="kpi-value" id="kpiRevenue">—</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card"><h3>نشاط آخر 14 يوم</h3><canvas id="chartActivity"></canvas></div>
+        <div class="card"><h3>أكثر المستخدمين نشاطاً</h3><div id="topUsers" class="top-list"></div></div>
+      </div>
+    </section>
+
+    <!-- USERS -->
+    <section class="page hidden" data-page="users">
+      <div class="toolbar">
+        <input id="userQuery" placeholder="ابحث بالاسم / البريد / ID / كود الإحالة" />
+        <select id="userRole"><option value="">كل الأدوار</option><option>USER</option><option>MODERATOR</option><option>FINANCE</option><option>ADMIN</option><option>SUPER_ADMIN</option></select>
+        <select id="userStatus"><option value="">كل الحالات</option><option>ACTIVE</option><option>FROZEN</option><option>BANNED</option></select>
+        <button id="usersRefresh" class="primary">تحديث</button>
+      </div>
+      <div class="card table-wrap">
+        <table id="usersTable">
+          <thead><tr>
+            <th>الاسم</th><th>البريد</th><th>الدور</th><th>الحالة</th>
+            <th>النقاط</th><th>الإحالة</th><th>تاريخ</th><th>إجراءات</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="table-foot">
+        <button id="usersPrev">السابق</button>
+        <span id="usersPageInfo">صفحة 1</span>
+        <button id="usersNext">التالي</button>
+      </div>
+    </section>
+
+    <!-- USER DETAIL MODAL -->
+    <div id="userModal" class="modal hidden">
+      <div class="modal-card">
+        <button class="modal-close" data-close>✕</button>
+        <h3 id="userModalTitle">مستخدم</h3>
+        <div id="userModalBody"></div>
+      </div>
+    </div>
+
+    <!-- CAMPAIGNS -->
+    <section class="page hidden" data-page="campaigns">
+      <div class="card table-wrap">
+        <table id="campaignsTable">
+          <thead><tr>
+            <th>النوع</th><th>المالك</th><th>الاستهداف</th><th>الحالة</th><th>التقدم</th>
+            <th>المطلوب</th><th>التكلفة</th><th>تاريخ</th><th>إجراءات</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- PURCHASES -->
+    <section class="page hidden" data-page="purchases">
+      <div class="toolbar">
+        <select id="purchaseStatus"><option value="">كل الحالات</option><option>PENDING</option><option>APPROVED</option><option>REJECTED</option></select>
+        <button id="purchasesRefresh" class="primary">تحديث</button>
+      </div>
+      <div class="card table-wrap">
+        <table id="purchasesTable">
+          <thead><tr><th>المستخدم</th><th>الباقة</th><th>النقاط</th><th>السعر</th><th>الحالة</th><th>التاريخ</th><th>إجراءات</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- REPORTS -->
+    <section class="page hidden" data-page="reports">
+      <div class="card table-wrap">
+        <table id="reportsTable">
+          <thead><tr><th>المُبلّغ</th><th>المُبلَّغ عنه</th><th>السبب</th><th>الحالة</th><th>التاريخ</th><th>إجراءات</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- NOTIFY -->
+    <section class="page hidden" data-page="notify">
+      <div class="card form-card">
+        <label>المستلم</label>
+        <select id="notifyTarget" multiple size="8">
+          <option value="">جميع المستخدمين (Broadcast)</option>
+        </select>
+        <label>العنوان</label>
+        <input id="notifyTitle" placeholder="عنوان الإشعار" />
+        <label>النص</label>
+        <textarea id="notifyBody" rows="4" placeholder="نص الرسالة"></textarea>
+        <label>النوع</label>
+        <select id="notifyType">
+          <option value="info">معلومة</option>
+          <option value="success">نجاح</option>
+          <option value="warning">تحذير</option>
+          <option value="reward">مكافأة</option>
+        </select>
+        <button id="notifySend" class="primary">إرسال</button>
+      </div>
+    </section>
+
+    <!-- LOGS -->
+    <section class="page hidden" data-page="logs">
+      <div class="card table-wrap">
+        <table id="logsTable">
+          <thead><tr><th>الفاعل</th><th>الإجراء</th><th>الهدف</th><th>التفاصيل</th><th>التاريخ</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- REWARDS / ADS -->
+    <section class="page hidden" data-page="rewards">
+      <div class="grid-2">
+        <div class="card form-card">
+          <h3>إعدادات الإعلانات</h3>
+          <label><input type="checkbox" id="adsBannerEnabled" /> تفعيل Banner Ads</label>
+          <label><input type="checkbox" id="adsInterstitialEnabled" /> تفعيل Interstitial Ads</label>
+          <label><input type="checkbox" id="adsRewardedEnabled" /> تفعيل Reward Ads</label>
+          <label><input type="checkbox" id="adsNativeEnabled" /> تفعيل Native Ads</label>
+          <label>Banner Unit ID</label>
+          <input id="adsBannerUnitId" placeholder="ca-app-pub-..." />
+          <label>Interstitial Unit ID</label>
+          <input id="adsInterstitialUnitId" placeholder="ca-app-pub-..." />
+          <label>Rewarded Unit ID</label>
+          <input id="adsRewardedUnitId" placeholder="ca-app-pub-..." />
+          <label>Native Unit ID</label>
+          <input id="adsNativeUnitId" placeholder="ca-app-pub-..." />
+          <hr style="border-color:var(--border);margin:14px 0" />
+          <label><input type="checkbox" id="adsAutoInterstitialEnabled" /> تفعيل الإعلان التلقائي</label>
+          <label>الفاصل بين إعلانات Interstitial (بالدقائق)</label>
+          <input id="adsInterstitialIntervalMinutes" type="number" min="1" max="1440" value="20" />
+          <label><input type="checkbox" id="adsCustomBannerEnabled" /> استخدام إعلان صورة خاص بي بدل Banner AdMob</label>
+          <label>رابط صورة الإعلان</label>
+          <input id="adsCustomBannerImageUrl" placeholder="https://.../banner.jpg" />
+          <label>رابط عند الضغط على الصورة (اختياري)</label>
+          <input id="adsCustomBannerLinkUrl" placeholder="https://..." />
+          <label>عنوان الإعلان</label>
+          <input id="adsCustomBannerLabel" value="إعلان" />
+          <button id="adsSave" class="primary">حفظ إعدادات الإعلانات</button>
+        </div>
+        <div class="card form-card">
+          <h3>إعدادات المكافآت وعجلة الحظ</h3>
+          <label>عدد إعلانات المكافآت اليومية</label>
+          <input id="rewardDailyLimit" type="number" min="1" max="100" />
+          <label>النقاط لكل إعلان Reward</label>
+          <input id="rewardPointsPerAd" type="number" min="1" max="100000" />
+          <label>مدة جلسة المطالبة بالدقائق</label>
+          <input id="rewardSessionExpiry" type="number" min="1" max="120" />
+          <label>عدد اللفات اليومية المجانية</label>
+          <input id="wheelDailySpinsLimit" type="number" min="1" max="20" />
+          <label>اللفات الإضافية القصوى يومياً</label>
+          <input id="wheelMaxExtraSpins" type="number" min="0" max="20" />
+          <label>حد الـ Confetti</label>
+          <input id="wheelConfettiThreshold" type="number" min="0" max="1000000" />
+          <button id="rewardSettingsSave" class="primary">حفظ إعدادات المكافآت</button>
+        </div>
+      </div>
+      <div class="card form-card" style="margin-top:16px">
+        <h3>حسابات بدون إعلانات</h3>
+        <p style="color:var(--muted);font-size:12px">اختر الحسابات التي لا تريد أن يظهر لها Banner أو Interstitial أو الإعلان المخصص.</p>
+        <select id="adsExcludedUsers" multiple size="8" style="width:100%;min-height:180px"></select>
+        <small style="color:var(--muted)">يمكنك تحديد أكثر من حساب بالضغط مع Ctrl/Shift.</small>
+        <button id="adsExcludedUsersSave" class="primary" style="margin-top:10px">حفظ الحسابات المستثناة</button>
+      </div>
+      <div class="grid-2" style="margin-top:16px">
+        <div class="card form-card">
+          <h3>المكافآت الترحيبية والإحالة</h3>
+          <label>النقاط الترحيبية عند التسجيل</label>
+          <input id="signupBonusPoints" type="number" min="0" />
+          <label>مكافأة صاحب الإحالة</label>
+          <input id="referralBonusPoints" type="number" min="0" />
+          <label>مكافأة المستخدم الجديد عبر الإحالة</label>
+          <input id="referralNewUserBonusPoints" type="number" min="0" />
+          <button id="referralSettingsSave" class="primary">حفظ المكافآت</button>
+        </div>
+        <div class="card form-card">
+          <h3>رابط تحميل التطبيق</h3>
+          <label>رابط التحميل الذي ينسخه المستخدم</label>
+          <input id="appDownloadUrl" placeholder="https://play.google.com/store/apps/..." />
+          <p style="color:var(--muted);font-size:12px">سيتم استخدامه مع رابط الإحالة الخاص بكل مستخدم.</p>
+          <button id="appDownloadSave" class="primary">حفظ رابط التحميل</button>
+        </div>
+      </div>
+      <div class="grid-2" style="margin-top:16px">
+        <div class="card form-card">
+          <h3>أسعار ومكافآت الحملات</h3>
+          <div class="grid-2 contact-grid">
+            <div>
+              <label>سعر FOLLOWERS</label>
+              <input id="priceFollowers" type="number" min="1" max="1000000" />
+            </div>
+            <div>
+              <label>مكافأة FOLLOWERS</label>
+              <input id="rewardFollowers" type="number" min="1" max="1000000" />
+            </div>
+            <div>
+              <label>سعر LIKES</label>
+              <input id="priceLikes" type="number" min="1" max="1000000" />
+            </div>
+            <div>
+              <label>مكافأة LIKES</label>
+              <input id="rewardLikes" type="number" min="1" max="1000000" />
+            </div>
+            <div>
+              <label>سعر VIEWS</label>
+              <input id="priceViews" type="number" min="1" max="1000000" />
+            </div>
+            <div>
+              <label>مكافأة VIEWS</label>
+              <input id="rewardViews" type="number" min="1" max="1000000" />
+            </div>
+            <div>
+              <label>سعر COMMENTS</label>
+              <input id="priceComments" type="number" min="1" max="1000000" />
+            </div>
+            <div>
+              <label>مكافأة COMMENTS</label>
+              <input id="rewardComments" type="number" min="1" max="1000000" />
+            </div>
+            <div>
+              <label>الحد الأدنى للكمية</label>
+              <input id="minCampaignQuantity" type="number" min="1" max="1000000" />
+            </div>
+            <div>
+              <label>الحد الأقصى للكمية</label>
+              <input id="maxCampaignQuantity" type="number" min="1" max="1000000" />
+            </div>
+          </div>
+          <button id="pricingSettingsSave" class="primary">حفظ إعدادات التسعير والاستهداف</button>
+        </div>
+      </div>
+
+      <div class="card form-card contact-settings-card" style="margin-top:16px;max-width:none">
+        <h3>إعدادات التواصل</h3>
+        <p class="muted">يمكنك إضافة أزرار مخصصة مثل: انضم إلى مجموعة، Telegram، YouTube، حمّل تطبيقنا أو أي رابط آخر (حتى 30 زرًا).</p>
+        <div class="grid-2 contact-grid">
+          <div>
+            <label>رقم واتساب</label>
+            <input id="contactWhatsapp" placeholder="213779109990" />
+          </div>
+          <div>
+            <label>البريد الإلكتروني</label>
+            <input id="contactEmail" type="email" placeholder="ww608352@gmail.com" />
+          </div>
+          <div>
+            <label>رابط إنستغرام</label>
+            <input id="contactInstagram" placeholder="https://www.instagram.com/..." />
+          </div>
+          <div>
+            <label>رابط فيسبوك</label>
+            <input id="contactFacebook" placeholder="https://www.facebook.com/..." />
+          </div>
+        </div>
+        <hr style="border-color:var(--border);margin:14px 0" />
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+          <div><b>الأزرار الإضافية</b><div class="muted" style="font-size:12px">الاسم + الرابط + تفعيل/تعطيل.</div></div>
+          <button id="contactLinkAdd" type="button">+ إضافة زر</button>
+        </div>
+        <div id="contactLinksEditor" style="margin-top:12px"></div>
+        <button id="contactSettingsSave" class="primary">حفظ إعدادات التواصل</button>
+      </div>
+
+      <div class="grid-2" style="margin-top:16px">
+        <div class="card form-card">
+          <h3>👑 إعدادات VIP PRO</h3>
+          <label><input type="checkbox" id="vipEnabled" /> تفعيل الاشتراك</label>
+          <label>السعر الشهري (USD)</label><input id="vipPrice" type="number" min="1" step="0.01" />
+          <label>النقاط الإضافية لكل مهمة</label><input id="vipBonusPerTask" type="number" min="0" />
+          <label><input type="checkbox" id="vipPriority" /> وضع حملات VIP في المقدمة</label>
+          <button id="vipSettingsSave" class="primary">حفظ إعدادات VIP</button>
+        </div>
+        <div class="card form-card">
+          <h3>⭐ تقييم التطبيق والتذكيرات</h3>
+          <label><input type="checkbox" id="reviewPromptEnabled" /> تفعيل مهمة التقييم</label>
+          <label>رابط Google Play</label><input id="reviewUrl" placeholder="https://play.google.com/store/apps/details?id=..." />
+          <label>مكافأة التقييم</label><input id="reviewReward" type="number" min="0" />
+          <label>ساعات تذكير العودة</label><input id="reminderHours" type="number" min="1" max="720" />
+          <button id="reviewSettingsSave" class="primary">حفظ التقييم والتذكيرات</button>
+        </div>
+      </div>
+      <div class="card table-wrap" style="margin-top:16px">
+        <div class="toolbar">
+          <h3 style="margin:0">جوائز عجلة الحظ</h3>
+          <button id="wheelRefresh" class="primary">تحديث الجوائز</button>
+        </div>
+        <table id="wheelPrizesTable">
+          <thead><tr><th>الترتيب</th><th>الاسم</th><th>النقاط</th><th>الوزن</th><th>اللون</th><th>مفعّل</th><th>إجراء</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- PACKAGES -->
+    <section class="page hidden" data-page="packages">
+      <div class="card form-card">
+        <h3>إضافة / تعديل باقة</h3>
+        <input type="hidden" id="packageId" />
+        <div class="grid-2 contact-grid">
+          <div><label>اسم الباقة</label><input id="packageName" /></div>
+          <div><label>Slug</label><input id="packageSlug" placeholder="starter" /></div>
+          <div><label>السعر</label><input id="packagePrice" type="number" min="0" step="0.01" /></div>
+          <div><label>العملة</label><input id="packageCurrency" value="USD" /></div>
+          <div><label>النقاط</label><input id="packagePoints" type="number" min="0" /></div>
+          <div><label>النقاط الإضافية</label><input id="packageBonus" type="number" min="0" value="0" /></div>
+          <div><label>الترتيب</label><input id="packageSort" type="number" min="0" value="0" /></div>
+        </div>
+        <label><input type="checkbox" id="packageActive" checked /> مفعّلة</label>
+        <button id="packageSave" class="primary">حفظ الباقة</button>
+        <button id="packageNew" class="primary" style="background:#334155">باقة جديدة</button>
+      </div>
+      <div class="card table-wrap" style="margin-top:16px">
+        <div class="toolbar"><h3 style="margin:0">الباقات الحالية</h3><button id="packagesRefresh" class="primary">تحديث</button></div>
+        <table id="packagesTable"><thead><tr><th>الاسم</th><th>السعر</th><th>النقاط</th><th>الهدية</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody></tbody></table>
+      </div>
+    </section>
+
+    <!-- OFFERS -->
+    <section class="page hidden" data-page="offers">
+      <div class="card form-card">
+        <h3>إنشاء / تعديل عرض</h3>
+        <input type="hidden" id="offerId" />
+        <div class="grid-2 contact-grid">
+          <div><label>العنوان</label><input id="offerTitle" /></div>
+          <div><label>العملة</label><input id="offerCurrency" value="USD" /></div>
+          <div><label>السعر القديم (بالدولار)</label><input id="offerOldPrice" type="number" min="0" step="0.01" /></div>
+          <div><label>السعر الجديد (بالدولار)</label><input id="offerNewPrice" type="number" min="0" step="0.01" /></div>
+          <div><label>نسبة الخصم %</label><input id="offerDiscount" type="number" min="0" max="100" /></div>
+          <div><label>الباقة المرتبطة</label><select id="offerPackageId"><option value="">بدون باقة</option></select></div>
+          <div><label>الترتيب</label><input id="offerSort" type="number" min="0" value="0" /></div>
+          <div><label>الجنس المستهدف</label>
+            <select id="offerGender"><option>ALL</option><option>MALE</option><option>FEMALE</option></select>
+          </div>
+          <div><label>الدولة المستهدفة (ISO أو WORLDWIDE)</label><input id="offerCountry" value="WORLDWIDE" /></div>
+          <div><label>تاريخ البداية (ISO)</label><input id="offerStart" placeholder="2026-08-13T00:00:00Z" /></div>
+          <div><label>تاريخ النهاية (ISO)</label><input id="offerEnd" placeholder="2026-09-13T00:00:00Z" /></div>
+        </div>
+        <label style="margin-top:8px"><input type="checkbox" id="offerActive" checked /> مفعّل</label>
+        <label>الوصف</label>
+        <textarea id="offerDesc" rows="2"></textarea>
+        <button id="offerSave" class="primary" style="margin-top:10px">حفظ العرض</button>
+        <button id="offerNew" class="primary" style="margin-top:10px;background:#334155">عرض جديد</button>
+      </div>
+      <div class="card table-wrap" style="margin-top:16px">
+        <div class="toolbar"><h3 style="margin:0">العروض</h3><button id="offersRefresh" class="primary">تحديث</button></div>
+        <table id="offersTable">
+          <thead><tr><th>العنوان</th><th>السعر</th><th>الخصم</th><th>الجنس</th><th>الدولة</th><th>مفعّل</th><th>إجراءات</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- AD ANALYTICS -->
+    <section class="page hidden" data-page="adAnalytics">
+      <div class="toolbar">
+        <select id="adAnalyticsDays"><option value="7">7 أيام</option><option value="30" selected>30 يوم</option><option value="90">90 يوم</option><option value="365">365 يوم</option></select>
+        <button id="adAnalyticsRefresh" class="primary">تحديث</button>
+      </div>
+      <div class="cards">
+        <div class="kpi"><div class="kpi-label">الإجمالي</div><div class="kpi-value" id="adTotal">0</div></div>
+        <div class="kpi"><div class="kpi-label">Banner</div><div class="kpi-value" id="adBannerTotal">0</div></div>
+        <div class="kpi"><div class="kpi-label">Interstitial</div><div class="kpi-value" id="adInterstitialTotal">0</div></div>
+        <div class="kpi accent"><div class="kpi-label">Rewarded</div><div class="kpi-value" id="adRewardedTotal">0</div></div>
+        <div class="kpi"><div class="kpi-label">الأشخاص الذين شاهدوا</div><div class="kpi-value" id="adUniqueViewers">0</div></div>
+      </div>
+      <div class="card table-wrap">
+        <table id="adAnalyticsTable"><thead><tr><th>المستخدم</th><th>نوع الحساب</th><th>الجنس</th><th>الدولة</th><th>Banner</th><th>Interstitial</th><th>Reward</th><th>Native</th><th>إعلان مخصص</th><th>المجموع</th></tr></thead><tbody></tbody></table>
+      </div>
+    </section>
+
+    <!-- ADMINS -->
+    <section class="page hidden" data-page="vip">
+      <div class="card table-wrap"><div class="toolbar"><h3 style="margin:0">طلبات VIP PRO</h3><button id="vipRefresh" class="primary">تحديث</button></div>
+      <table id="vipTable"><thead><tr><th>المستخدم</th><th>السعر</th><th>الطريقة</th><th>الحالة</th><th>تاريخ الطلب</th><th>إجراء</th></tr></thead><tbody></tbody></table></div>
+    </section>
+
+    <section class="page hidden" data-page="admins">
+      <div class="card form-card">
+        <h3>إنشاء مدير جديد</h3>
+        <div class="grid-2 contact-grid">
+          <div><label>الاسم</label><input id="adminName" /></div>
+          <div><label>البريد</label><input id="adminEmail" type="email" /></div>
+          <div><label>كلمة المرور</label><input id="adminPassword" type="password" /></div>
+          <div><label>الدور</label><select id="adminRole"><option>ADMIN</option><option>MODERATOR</option><option>FINANCE</option></select></div>
+        </div>
+        <label>الصلاحيات</label>
+        <select id="adminPermissions" multiple size="8" style="width:100%">
+          <option value="dashboard">الإحصائيات</option><option value="users">المستخدمون</option><option value="campaigns">الحملات</option><option value="purchases">المدفوعات</option><option value="reports">البلاغات</option><option value="notifications">الإشعارات</option><option value="logs">السجلات</option><option value="ads">الإعلانات</option><option value="packages">الباقات</option><option value="offers">العروض</option><option value="rewards">المكافآت</option><option value="analytics">إحصائيات الإعلانات</option><option value="settings">الإعدادات</option><option value="*">كل الصلاحيات</option>
+        </select>
+        <button id="adminCreate" class="primary">إنشاء المدير</button>
+      </div>
+      <div class="card table-wrap" style="margin-top:16px"><table id="adminsTable"><thead><tr><th>الاسم</th><th>البريد</th><th>الدور</th><th>الحالة</th><th>الصلاحيات</th><th>آخر دخول</th><th>إجراءات</th></tr></thead><tbody></tbody></table></div>
+    </section>
+    <section class="page hidden" data-page="passwordResets">
+      <div class="card">
+        <div class="toolbar">
+          <div>
+            <h3 style="margin:0">🔐 طلبات استعادة كلمة المرور</h3>
+            <div class="muted">رمز OTP مخفي افتراضيًا. أظهره فقط عند الحاجة وأرسله للمستخدم يدويًا.</div>
+          </div>
+          <button id="passwordResetsRefresh" class="primary">تحديث</button>
+        </div>
+      </div>
+      <div class="card table-wrap" style="margin-top:16px">
+        <table id="passwordResetsTable">
+          <thead><tr><th>المستخدم</th><th>الحالة</th><th>المحاولات</th><th>الإنشاء</th><th>الانتهاء</th><th>الرمز</th><th>إجراءات</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="js/admin.js"></script>
+</body>
+</html>

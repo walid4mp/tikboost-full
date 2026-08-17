@@ -1,0 +1,161 @@
+name: Build and Release Android Artifacts
+
+permissions:
+  contents: write
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+    tags:
+      - "v*"
+    paths:
+      - "backend/**"
+      - "flutter-app/**"
+      - "admin-panel/**"
+      - ".github/workflows/android-apk.yml"
+      - "render.yaml"
+      - "README.md"
+
+jobs:
+  backend-check:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tikboost_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d tikboost_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/tikboost_test?schema=public
+      JWT_ACCESS_SECRET: gha_access_secret_change_me
+      JWT_REFRESH_SECRET: gha_refresh_secret_change_me
+      ENABLE_GOOGLE_LOGIN: 'false'
+      ENABLE_LEGACY_PASSWORD_RESET: 'false'
+      SEED_ADMIN_PASSWORD: StrongTempAdminPassword_123
+      SEED_ADMIN_EMAIL: admin@tikboost.app
+      NODE_ENV: test
+      SOCKET_CORS_ORIGIN: '*'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate --schema=prisma/schema.prisma
+
+      - name: Verify Prisma client fields
+        run: npm run prisma:verify-client
+
+      - name: Apply Prisma migrations to CI database
+        run: npx prisma migrate deploy --schema=prisma/schema.prisma
+
+      - name: Run backend CI tests
+        run: npm run test:ci
+
+      - name: Check backend syntax
+        run: npm run check:syntax
+
+      - name: Smoke-load Express app
+        run: node -e "const app=require('./src/app'); console.log('backend ok', !!app)"
+
+  build-apk:
+    runs-on: ubuntu-latest
+    needs: backend-check
+    defaults:
+      run:
+        working-directory: flutter-app
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.8'
+          channel: stable
+          cache: true
+
+      - name: Flutter version
+        run: flutter --version
+
+      - name: Generate Android project files if missing
+        run: flutter create . --platforms=android
+
+      - name: Flutter clean
+        run: flutter clean
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze Flutter code
+        run: flutter analyze --no-fatal-infos
+
+      - name: Run widget tests
+        run: flutter test
+
+      - name: Build release APK
+        run: |
+          flutter build apk --release \
+            --dart-define=API_BASE_URL=https://tikboost-api-v2.onrender.com/api \
+            --dart-define=SOCKET_URL=https://tikboost-api-v2.onrender.com \
+            --dart-define=ENABLE_GOOGLE_LOGIN=false \
+            --dart-define=ALLOW_LEGACY_PASSWORD_RESET=false
+
+      - name: Build release AAB
+        run: |
+          flutter build appbundle --release \
+            --dart-define=API_BASE_URL=https://tikboost-api-v2.onrender.com/api \
+            --dart-define=SOCKET_URL=https://tikboost-api-v2.onrender.com \
+            --dart-define=ENABLE_GOOGLE_LOGIN=false \
+            --dart-define=ALLOW_LEGACY_PASSWORD_RESET=false
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tikboost-release-apk
+          path: flutter-app/build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tikboost-release-aab
+          path: flutter-app/build/app/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            flutter-app/build/app/outputs/flutter-apk/app-release.apk
+            flutter-app/build/app/outputs/bundle/release/app-release.aab
+          generate_release_notes: true
+          fail_on_unmatched_files: true

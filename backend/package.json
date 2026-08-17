@@ -1,0 +1,51 @@
+{
+  "name": "tikboost-backend",
+  "version": "1.0.0",
+  "description": "TikBoost - Real TikTok engagement exchange platform backend",
+  "main": "src/server.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "postinstall": "npm run prisma:generate",
+    "prisma:verify-client": "node src/scripts/verify-prisma-client.js",
+    "prestart": "npm run prisma:generate && npm run prisma:verify-client",
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "seed": "npm run prisma:generate && node src/scripts/seed.js",
+    "prisma:generate": "prisma generate --schema=prisma/schema.prisma",
+    "prisma:push": "prisma db push --schema=prisma/schema.prisma",
+    "prisma:migrate": "prisma migrate dev --schema=prisma/schema.prisma",
+    "prisma:migrate:deploy": "prisma migrate deploy --schema=prisma/schema.prisma",
+    "check:syntax": "find src -name '*.js' -print0 | xargs -0 -n1 node --check",
+    "build": "npm run prisma:verify-client && npm run check:syntax",
+    "render:build": "npm ci && npm run prisma:generate && npm run prisma:migrate:deploy && npm run build",
+    "render:predeploy": "node src/scripts/render-predeploy.js",
+    "test:prepare": "DOTENV_CONFIG_PATH=.env.test node -r dotenv/config src/scripts/test-prepare.js",
+    "test": "DOTENV_CONFIG_PATH=.env.test node -r dotenv/config --test --test-concurrency=1 test/*.test.js",
+    "test:ci": "npm run test:prepare && npm test"
+  },
+  "prisma": {
+    "seed": "npm run seed"
+  },
+  "dependencies": {
+    "@prisma/client": "5.22.0",
+    "bcrypt": "^5.1.1",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "express-rate-limit": "^7.4.0",
+    "express-validator": "^7.2.0",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "nodemailer": "^9.0.5",
+    "pg": "^8.13.0",
+    "prisma": "5.22.0",
+    "socket.io": "^4.7.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.7"
+  }
+}
