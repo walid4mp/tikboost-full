@@ -110,7 +110,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
               ),
               const Text(
                 'بعد طلب الرمز، سيظهر الطلب لدى الإدارة. سيرسل لك الدعم الرمز يدويًا عبر وسيلة التواصل المتاحة.',
-                style: TextStyle(color: AppColors.muted),
+                style: TextStyle(color: AppColors.textMuted),
               ),
               const SizedBox(height: 12),
               ElevatedButton(
