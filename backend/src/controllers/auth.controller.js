@@ -11,6 +11,7 @@ const {
   asyncHandler,
 } = require('../utils/helpers');
 const { adjustPoints } = require('../services/points.service');
+const { sendPasswordResetCode } = require('../services/mailer.service');
 const { notify } = require('../services/notifications.service');
 const { getSettings } = require('../services/appSettings.service');
 const {
@@ -425,6 +426,13 @@ const forgotPassword = asyncHandler(async (req, res) => {
       requestIp: ip || null,
     },
   });
+
+  try {
+    await sendPasswordResetCode(email, rawCode, ttlMin);
+  } catch (err) {
+    await prisma.passwordResetToken.deleteMany({ where: { userId: user.id, tokenHash } });
+    throw err;
+  }
 
   // Intentionally no email provider, no OTP in response, and no OTP in logs.
   res.json({ success: true, message: genericResetMessage });
