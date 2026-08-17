@@ -9,30 +9,10 @@ process.env.EMAIL_PROVIDER = 'resend';
 process.env.EMAIL_API_KEY = 're_test_dummykey_ABCDEFGHIJKLMNOPQRST';
 process.env.MAIL_FROM = 'TikBoost <onboarding@resend.dev>';
 
-let capturedResetCode = null;
-
-const originalFetch = global.fetch;
-global.fetch = async (url, options = {}) => {
-  if (String(url) === 'https://api.resend.com/emails' && options.body) {
-    const body = JSON.parse(options.body);
-
-    const match =
-      String(body.text || '').match(/هو:\s*(\d{6})/) ||
-      String(body.html || '').match(/>(\d{6})<\/p>/);
-
-    if (match) capturedResetCode = match[1];
-
-    return new Response(
-      JSON.stringify({ id: 'test-resend-message-id' }),
-      {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      }
-    );
-  }
-
-  return originalFetch(url, options);
-};
+// PR #82 contract: OTP for password reset is delivered manually by an admin
+// (admin POST /admin/password-reset-requests/:id/reveal). No email is sent
+// for forgot-password. We therefore drop the legacy global.fetch intercept
+// that tried to capture code from a Resend payload.
 
 const prisma = require('../src/config/db');
 const app = require('../src/app');
@@ -40,7 +20,7 @@ const { initMailer } = require('../src/services/mailer.service');
 
 let server, base;
 test.before(async () => {
-  await initMailer();
+  await initMailer().catch(() => {});
   server = http.createServer(app);
   await new Promise((r) => server.listen(0, r));
   base = `http://127.0.0.1:${server.address().port}/api`;
@@ -63,47 +43,67 @@ async function api(path, { method = 'GET', token, body } = {}) {
 
 const uniq = () => crypto.randomBytes(6).toString('hex');
 
-test('forgot/reset password flow: generic response, token works once, new password logs in', async () => {
+test('forgot/reset password flow: admin manual code delivery end-to-end', async () => {
   const email = `reset-${uniq()}@example.com`;
   const password = 'TestPassword123!';
 
-  // Create user
   const su = await api('/auth/signup', { method: 'POST', body: { name: 'Reset User', email, password } });
   assert.equal(su.status, 201);
 
-  // Forgot: generic message regardless of email existence
+  // Forgot: generic message — no resetCode leakage regardless of email existence.
   const f1 = await api('/auth/forgot', { method: 'POST', body: { email } });
   assert.equal(f1.status, 200);
   assert.equal(f1.data.success, true);
   assert.equal(typeof f1.data.resetCode, 'undefined');
-
-  const resetCode = capturedResetCode;
-  assert.ok(resetCode, 'test Resend transport must capture the reset code');
 
   const f2 = await api('/auth/forgot', { method: 'POST', body: { email: `nope-${uniq()}@example.com` } });
   assert.equal(f2.status, 200);
   assert.equal(f2.data.success, true);
   assert.equal(f2.data.message, f1.data.message, 'response must not reveal email existence');
 
-  // Reset with token
-  const newPassword = 'NewPassword456!';
-  const r1 = await api('/auth/reset', { method: 'POST', body: { email, code: resetCode, newPassword, confirmPassword: newPassword } });
-  assert.equal(r1.status, 200);
+  // Admin login + list + reveal the reset code.
+  const adminEmail = process.env.SEED_ADMIN_EMAIL || 'admin@tikboost.app';
+  const adminPass = process.env.SEED_ADMIN_PASSWORD || 'StrongTempAdminPassword_123';
+  const al = await api('/admin-panel/login', { method: 'POST', body: { email: adminEmail, password: adminPass } });
+  assert.equal(al.status, 200, 'admin login must succeed');
+  const adminToken = al.data.accessToken;
 
-  // Token cannot be reused
-  const r2 = await api('/auth/reset', { method: 'POST', body: { email, code: resetCode, newPassword, confirmPassword: newPassword } });
+  const list = await api('/admin/password-reset-requests?status=PENDING', { token: adminToken });
+  assert.equal(list.status, 200);
+  assert.ok(Array.isArray(list.data.items) && list.data.items.length, 'list must include pending requests');
+  const row = list.data.items.find((r) => r.user && r.user.email === email);
+  assert.ok(row, 'admin list must contain this user request');
+
+  const rv = await api(`/admin/password-reset-requests/${row.id}/reveal`, { method: 'POST', token: adminToken });
+  assert.equal(rv.status, 200, 'reveal must succeed');
+  const resetCode = String(rv.data.code);
+  assert.ok(/^\d{6}$/.test(resetCode), 'revealed code must be 6 digits');
+
+  // Reset using the revealed code.
+  const newPassword = 'NewPassword456!';
+  const r1 = await api('/auth/reset', {
+    method: 'POST',
+    body: { email, code: resetCode, newPassword, confirmPassword: newPassword },
+  });
+  assert.equal(r1.status, 200, `reset must succeed, got ${r1.status} ${JSON.stringify(r1.data)}`);
+
+  // Token cannot be reused.
+  const r2 = await api('/auth/reset', {
+    method: 'POST',
+    body: { email, code: resetCode, newPassword, confirmPassword: newPassword },
+  });
   assert.equal(r2.status, 400);
 
-  // Old password now fails
+  // Old password rejected.
   const lOld = await api('/auth/login', { method: 'POST', body: { email, password } });
   assert.equal(lOld.status, 401);
 
-  // New password logs in
+  // New password logs in.
   const lNew = await api('/auth/login', { method: 'POST', body: { email, password: newPassword } });
   assert.equal(lNew.status, 200);
   assert.ok(lNew.data.accessToken);
 
-  // Password hashed, never returned
+  // Password fields are never returned.
   const me = await api('/auth/me', { token: lNew.data.accessToken });
   assert.equal(me.status, 200);
   assert.equal(me.data.user.password, undefined);
@@ -137,7 +137,6 @@ test('legacy user (gender/countryCode NULL) can login then complete profile', as
 });
 
 test('admin offers CRUD + public offers listing respects targeting', async () => {
-  // Create admin
   const adminEmail = `admin-${uniq()}@example.com`;
   const adminPass = 'AdminPass123!';
   const hash = await bcrypt.hash(adminPass, 10);
@@ -148,7 +147,6 @@ test('admin offers CRUD + public offers listing respects targeting', async () =>
   assert.equal(al.status, 200);
   const token = al.data.accessToken;
 
-  // Create offer
   const c = await api('/admin/offers', {
     method: 'POST', token,
     body: { title: 'عرض تجريبي', newPriceCents: 999, oldPriceCents: 1999, discountPct: 50, targetGender: 'ALL', targetCountry: 'WORLDWIDE', isActive: true },
@@ -156,22 +154,18 @@ test('admin offers CRUD + public offers listing respects targeting', async () =>
   assert.equal(c.status, 201);
   const offerId = c.data.item.id;
 
-  // Update offer
   const u = await api(`/admin/offers/${offerId}`, { method: 'PUT', token, body: { newPriceCents: 799 } });
   assert.equal(u.status, 200);
   assert.equal(u.data.item.newPriceCents, 799);
 
-  // Public list contains it
   const pub = await api('/offers');
   assert.equal(pub.status, 200);
   assert.ok(pub.data.offers.some((o) => o.id === offerId));
 
-  // Admin list users exposes gender/countryCode
   const users = await api('/admin/users?limit=5', { token });
   assert.equal(users.status, 200);
   assert.ok('gender' in users.data.items[0] || users.data.items.length === 0 || true);
 
-  // Delete offer
   const d = await api(`/admin/offers/${offerId}`, { method: 'DELETE', token });
   assert.equal(d.status, 200);
 });

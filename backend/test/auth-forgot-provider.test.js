@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const http = require('node:http');
+const bcrypt = require('bcrypt');
 
 const originalFetch = global.fetch;
 
@@ -18,12 +19,10 @@ async function callApi(server, method, path, body) {
   return { status: res.status, text, json };
 }
 
-test('forgot password: uses HTTPS provider (resend) end-to-end', async (t) => {
-  process.env.EMAIL_PROVIDER = 'resend';
-  process.env.EMAIL_API_KEY = 're_test_provider_key';
-  process.env.MAIL_FROM = 'TikBoost <onboarding@resend.dev>';
-  process.env.NODE_ENV = 'development';
-
+// Mirrors the PR #82 contract: forgot-password is admin-manual only,
+// no email is sent; the value is exposed through the admin reveal endpoint.
+test('forgot password: creates admin-reviewable reset request (no email sent)', async (t) => {
+  // Make sure modules used below are fresh after env tweaks.
   delete require.cache[require.resolve('../src/config/env')];
   delete require.cache[require.resolve('../src/services/mailer.service')];
   delete require.cache[require.resolve('../src/controllers/auth.controller')];
@@ -31,38 +30,40 @@ test('forgot password: uses HTTPS provider (resend) end-to-end', async (t) => {
   delete require.cache[require.resolve('../src/middleware/authRateLimit')];
   delete require.cache[require.resolve('../src/app')];
 
+  process.env.EMAIL_PROVIDER = 'resend';
+  process.env.EMAIL_API_KEY = 're_test_provider_key';
+  process.env.MAIL_FROM = 'TikBoost <onboarding@resend.dev>';
+  process.env.NODE_ENV = 'test';
+
   const mailer = require('../src/services/mailer.service');
   await mailer.initMailer();
   assert.equal(mailer._internals.providerReady, true);
 
   const prisma = require('../src/config/db');
-  const bcrypt = require('bcrypt');
-  const email = `provider-test-${Date.now()}@example.com`;
-  const password = 'ProviderPass123!';
+  const email = `manual-reset-${Date.now()}@example.com`;
+  const password = 'ManualPass123!';
   await prisma.user.deleteMany({ where: { email } });
   await prisma.user.create({
     data: {
       email,
       password: await bcrypt.hash(password, 4),
-      name: 'Provider Test',
+      name: 'Manual Reset User',
       role: 'USER',
-      referralCode: 'PROVIDERTEST',
+      referralCode: 'MANUALRESET',
     },
   });
 
-  // Intercept fetch so we can prove the HTTPS provider was called with the
-  // right shape without hitting the network.
-  const providerCalls = [];
+  // Intercept any outbound network call. Any call against a transactional
+  // email provider is rejected with a sentinel status — that is enough to
+  // fail the test loudly if someone re-introduces email-delivery of OTPs.
+  const emailProviderCalls = [];
   global.fetch = async (url, init) => {
-    providerCalls.push({ url: String(url), init });
-    if (String(url).includes('api.resend.com/emails')) {
-      return new Response(JSON.stringify({ id: 'msg_stub_123' }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
+    const s = String(url);
+    if (s.includes('api.resend.com/emails') || s.includes('api.brevo.com') || s.includes('api.mailgun.net')) {
+      emailProviderCalls.push({ url: s, init });
+      return new Response('email MUST NOT be sent for forgot-password', { status: 599 });
     }
-    // Any accidental Gmail/SMTP call would fail the test.
-    return new Response('unexpected', { status: 599 });
+    return originalFetch(url, init);
   };
   t.after(() => { global.fetch = originalFetch; });
 
@@ -71,21 +72,63 @@ test('forgot password: uses HTTPS provider (resend) end-to-end', async (t) => {
   await new Promise((resolve) => server.listen(0, resolve));
   t.after(() => new Promise((resolve) => server.close(resolve)));
 
+  // 1) forgot endpoint must succeed but not return or send the code.
   const forgot = await callApi(server, 'POST', '/api/auth/forgot', { email });
   assert.equal(forgot.status, 200, `forgot must succeed, got ${forgot.status} ${forgot.text}`);
   assert.equal(forgot.json.success, true);
+  assert.equal(typeof forgot.json.resetCode, 'undefined', 'resetCode must not leak in response');
 
-  const call = providerCalls.find((c) => c.url.includes('api.resend.com/emails'));
-  assert.ok(call, 'Resend HTTPS endpoint must be called');
-  assert.ok(String(call.init.headers.Authorization || '').startsWith('Bearer re_test_provider_key'), 'must send bearer token');
-  const payload = JSON.parse(call.init.body);
-  assert.equal(payload.to[0], email);
-  assert.ok(payload.subject.includes('TikBoost'));
-  // The raw OTP is not exposed by the endpoint in non-test envs; here we only
-  // check the request payload contained SOME 6-digit code.
-  assert.ok(/\b\d{6}\b/.test(payload.text || payload.html || ''), 'payload must contain a 6-digit OTP');
+  // 2) No transactional email provider was called.
+  assert.equal(
+    emailProviderCalls.length, 0,
+    'transactional email provider must NOT be invoked for forgot-password under admin-manual mode',
+  );
 
-  // Rate limit sanity: fifth request within window still allowed, sixth blocked
+  // 3) A PENDING PasswordResetToken row exists for this user with an encryptedCode.
+  const token = await prisma.passwordResetToken.findFirst({
+    where: { user: { email } },
+    orderBy: { createdAt: 'desc' },
+  });
+  assert.ok(token, 'a PasswordResetToken row must be created');
+  assert.equal(token.status, 'PENDING');
+  assert.ok(token.encryptedCode, 'encryptedCode must be stored for admin reveal');
+  assert.tokenHash = token.tokenHash; // not used, just referenced for clarity
+
+  // 4) Admin login + reveal returns a 6-digit code.
+  const adminEmail = process.env.SEED_ADMIN_EMAIL || 'admin@tikboost.app';
+  const adminPass = process.env.SEED_ADMIN_PASSWORD || 'StrongTempAdminPassword_123';
+  const al = await callApi(server, 'POST', '/api/admin-panel/login', { email: adminEmail, password: adminPass });
+  assert.equal(al.status, 200, 'admin panel login must succeed');
+  const adminHeaders = { 'Content-Type': 'application/json', Authorization: `Bearer ${al.json.accessToken}` };
+
+  const listRes = await originalFetch(`http://127.0.0.1:${server.address().port}/api/admin/password-reset-requests?status=PENDING`, { method: 'GET', headers: adminHeaders });
+  const listJson = JSON.parse(await listRes.text());
+  assert.equal(listRes.status, 200);
+  assert.ok(Array.isArray(listJson.items) && listJson.items.length, 'admin list must hold pending requests');
+  const row = listJson.items.find((r) => r.user && r.user.email === email);
+  assert.ok(row, 'admin list must include this user request');
+
+  const rvRes = await originalFetch(
+    `http://127.0.0.1:${server.address().port}/api/admin/password-reset-requests/${row.id}/reveal`,
+    { method: 'POST', headers: adminHeaders },
+  );
+  const rvJson = JSON.parse(await rvRes.text());
+  assert.equal(rvRes.status, 200);
+  assert.ok(typeof rvJson.code === 'string' && /^\d{6}$/.test(rvJson.code), 'reveal must return a 6-digit code');
+
+  // 5) Reset password via the real flow.
+  const newPassword = 'NewPassword456!';
+  const r1 = await callApi(server, 'POST', '/api/auth/reset', { email, code: rvJson.code, newPassword, confirmPassword: newPassword });
+  assert.equal(r1.status, 200, `reset must succeed, got ${r1.status} ${r1.text}`);
+
+  // Old password rejected, new one accepted.
+  const lOld = await callApi(server, 'POST', '/api/auth/login', { email, password });
+  assert.equal(lOld.status, 401);
+  const lNew = await callApi(server, 'POST', '/api/auth/login', { email, password: newPassword });
+  assert.equal(lNew.status, 200);
+  assert.ok(lNew.json.accessToken, 'login must return an access token');
+
+  // 6) Rate limit: sixth call within the window is throttled.
   let last = null;
   for (let i = 0; i < 6; i++) {
     // eslint-disable-next-line no-await-in-loop
