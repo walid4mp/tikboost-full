@@ -226,7 +226,7 @@ class _TikBoostAppState extends ConsumerState<TikBoostApp> with WidgetsBindingOb
       debugShowCheckedModeBanner: false,
       themeMode: themeMode,
       theme: AppTheme.light(),
-      darkTheme: AppTheme.dark,
+      darkTheme: AppTheme.dark(),
       routerConfig: _router,
       builder: (ctx, child) => MediaQuery(
         data: MediaQuery.of(ctx).copyWith(
