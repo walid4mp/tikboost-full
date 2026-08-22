@@ -1,0 +1,483 @@
+// Prisma schema for TikBoost - PostgreSQL
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ================= USERS =================
+enum UserRole {
+  USER
+  ADMIN
+  SUPER_ADMIN
+  MODERATOR
+  FINANCE
+}
+
+enum UserStatus {
+  ACTIVE
+  FROZEN
+  BANNED
+}
+
+enum UserGender {
+  MALE
+  FEMALE
+}
+
+model User {
+  id            String     @id @default(uuid())
+  email         String     @unique
+  password      String
+  name          String
+  role          UserRole   @default(USER)
+  status        UserStatus @default(ACTIVE)
+  freezeUntil   DateTime?
+  banReason     String?
+  avatarUrl     String?
+  gender        UserGender?
+  countryCode   String?
+  points        BigInt     @default(0)
+  totalEarned   BigInt     @default(0)
+  totalSpent    BigInt     @default(0)
+  referralCode  String     @unique
+  referredById  String?
+  referredBy    User?      @relation("Referrals", fields: [referredById], references: [id])
+  referrals     User[]     @relation("Referrals")
+  deviceId      String?    @unique
+  fcmToken      String?    @unique
+  lastIp        String?
+  lastLoginAt   DateTime?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  adminPermissions Json?
+  vipProUntil DateTime?
+  vipSubscriptions VipSubscription[]
+
+  campaigns     Campaign[]      @relation("CampaignOwner")
+  tasks         Task[]          @relation("TaskExecutor")
+  purchases     Purchase[]
+  pointLogs     PointLog[]
+  notifications Notification[]
+  reportsMade   Report[]        @relation("Reporter")
+  reportsAgainst Report[]       @relation("Reported")
+  logs          AdminLog[]      @relation("LogActor")
+  spinLogs       SpinLog[]
+  refreshTokens  RefreshToken[]
+  adImpressions AdImpression[]
+  rewardSessions RewardSession[]
+  dailyUsage     DailyUsage[]
+  passwordResetTokens PasswordResetToken[]
+
+  @@index([email])
+  @@index([referralCode])
+  @@index([status])
+  @@index([gender, countryCode])
+}
+
+
+// ================= AD ANALYTICS =================
+enum AdType {
+  BANNER
+  INTERSTITIAL
+  REWARDED
+  NATIVE
+  CUSTOM_BANNER
+}
+
+model AdImpression {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      AdType
+  event     String   @default("VIEW")
+  createdAt DateTime @default(now())
+
+  @@index([userId, type, createdAt])
+  @@index([type, event, createdAt])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  revoked   Boolean  @default(false)
+
+  @@index([userId])
+}
+
+// ================= CAMPAIGNS =================
+enum CampaignType {
+  FOLLOWERS
+  LIKES
+  VIEWS
+  COMMENTS
+}
+
+enum CampaignStatus {
+  PENDING
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+enum CampaignTargetGender {
+  ALL
+  MALE
+  FEMALE
+}
+
+model Campaign {
+  id           String         @id @default(uuid())
+  ownerId      String
+  owner        User           @relation("CampaignOwner", fields: [ownerId], references: [id])
+  type         CampaignType
+  status       CampaignStatus @default(ACTIVE)
+  targetUrl    String
+  targetUsername String
+  commentText  String?
+  quantity     Int
+  completed    Int            @default(0)
+  pointsCost   BigInt
+  perTaskReward BigInt
+  proofUrl     String?
+  description  String?
+  targetGender CampaignTargetGender @default(ALL)
+  targetCountry String @default("WORLDWIDE")
+  vipPriority Boolean @default(false)
+  vipBonusPoints BigInt @default(0)
+  pausedAt     DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  tasks        Task[]
+
+  @@index([ownerId])
+  @@index([type, status])
+  @@index([status])
+  @@index([targetGender, targetCountry])
+}
+
+// ================= TASKS =================
+// One Task = one execution by a user of one campaign
+model Task {
+  id           String   @id @default(uuid())
+  campaignId   String
+  campaign     Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  executorId   String
+  executor     User     @relation("TaskExecutor", fields: [executorId], references: [id])
+  rewardPoints BigInt
+  status       String   @default("PENDING") // PENDING -> VERIFIED -> REJECTED
+  verifiedAt   DateTime?
+  ip           String?
+  deviceFingerprint String?
+  createdAt    DateTime @default(now())
+
+  // Anti-abuse: one executor per campaign (DB-enforced)
+  @@unique([campaignId, executorId])
+  @@index([executorId])
+  @@index([campaignId, status])
+}
+
+// ================= PACKAGES / PURCHASES =================
+model PointPackage {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  priceCents  Int
+  currency    String   @default("USD")
+  points      BigInt
+  bonusPoints BigInt   @default(0)
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  purchases   Purchase[]
+}
+
+enum PurchaseStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REFUNDED
+}
+
+model Purchase {
+  id          String         @id @default(uuid())
+  userId      String
+  user        User           @relation(fields: [userId], references: [id])
+  packageId   String
+  package     PointPackage   @relation(fields: [packageId], references: [id])
+  pointsGiven BigInt
+  priceCents  Int
+  offerId     String?
+  offer       Offer?        @relation(fields: [offerId], references: [id], onDelete: SetNull)
+  currency    String
+  method      String         // manual_transfer, stripe, paypal, etc
+  reference   String?        // tx id from payment provider
+  status      PurchaseStatus @default(PENDING)
+  approvedById String?
+  approvedAt  DateTime?
+  notes       String?
+  createdAt   DateTime       @default(now())
+
+  @@index([userId])
+  @@index([status])
+  @@index([offerId])
+}
+
+// ================= POINT LEDGER =================
+enum PointReason {
+  TASK_REWARD
+  CAMPAIGN_SPEND
+  PURCHASE
+  ADMIN_GRANT
+  ADMIN_DEDUCT
+  REFERRAL_BONUS
+  SPIN_REWARD
+  REFUND
+  SIGNUP_BONUS
+}
+
+model PointLog {
+  id        String      @id @default(uuid())
+  userId    String
+  user      User        @relation(fields: [userId], references: [id])
+  delta     BigInt      // can be negative
+  reason    PointReason
+  balanceAfter BigInt
+  refType   String?     // e.g. "Task", "Campaign"
+  refId     String?
+  note      String?
+  createdAt DateTime    @default(now())
+
+  @@index([userId, createdAt])
+  @@index([reason])
+}
+
+// ================= NOTIFICATIONS =================
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String?  // null = broadcast
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  body      String
+  type      String   @default("info") // info, success, warning, reward
+  data      Json?
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId, readAt])
+}
+
+// ================= REPORTS =================
+enum ReportStatus {
+  OPEN
+  REVIEWED
+  DISMISSED
+}
+
+model Report {
+  id          String       @id @default(uuid())
+  reporterId  String
+  reporter    User         @relation("Reporter", fields: [reporterId], references: [id])
+  reportedId  String
+  reported    User         @relation("Reported", fields: [reportedId], references: [id])
+  targetType  String       // user, campaign, task
+  targetId    String
+  reason      String
+  description String?
+  status      ReportStatus @default(OPEN)
+  resolvedById String?
+  createdAt   DateTime     @default(now())
+  resolvedAt  DateTime?
+
+  @@index([status, createdAt])
+}
+
+// ================= ADMIN LOGS =================
+model AdminLog {
+  id        String   @id @default(uuid())
+  actorId   String
+  actor     User     @relation("LogActor", fields: [actorId], references: [id])
+  action    String
+  target    String?
+  details   Json?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([actorId, createdAt])
+}
+
+// ================= LUCKY WHEEL =================
+model WheelPrize {
+  id        String   @id @default(uuid())
+  label     String
+  points    BigInt
+  weight    Int      @default(10)  // probability weight
+  color     String   @default("#ff3b5c")
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  spinLogs  SpinLog[]
+}
+
+model SpinLog {
+  id          String     @id @default(uuid())
+  userId      String
+  user        User       @relation(fields: [userId], references: [id])
+  prizeId     String
+  prize       WheelPrize @relation(fields: [prizeId], references: [id])
+  points      BigInt
+  isExtraSpin Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model AppSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  valueJson Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum RewardSessionType {
+  DAILY_POINTS
+  EXTRA_WHEEL_SPIN
+}
+
+enum RewardSessionStatus {
+  STARTED
+  CLAIMED
+  EXPIRED
+}
+
+model RewardSession {
+  id         String              @id @default(uuid())
+  userId     String
+  user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type       RewardSessionType
+  status     RewardSessionStatus @default(STARTED)
+  points     BigInt              @default(0)
+  extraSpins Int                 @default(0)
+  dayKey     DateTime
+  expiresAt  DateTime
+  claimedAt  DateTime?
+  createdAt  DateTime            @default(now())
+
+  @@index([userId, dayKey, type])
+  @@index([userId, status, expiresAt])
+}
+
+model DailyUsage {
+  id                    String   @id @default(uuid())
+  userId                String
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dayKey                DateTime
+  rewardedAdsClaimed    Int      @default(0)
+  rewardedAdPoints      BigInt   @default(0)
+  wheelDailySpinsUsed   Int      @default(0)
+  wheelExtraSpinsEarned Int      @default(0)
+  wheelExtraSpinsUsed   Int      @default(0)
+  wheelPointsWon        BigInt   @default(0)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@unique([userId, dayKey])
+  @@index([dayKey])
+}
+
+
+// ================= VIP PRO =================
+enum VipSubscriptionStatus {
+  PENDING
+  ACTIVE
+  EXPIRED
+  REJECTED
+}
+
+model VipSubscription {
+  id String @id @default(uuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  priceCents Int @default(1000)
+  currency String @default("USD")
+  status VipSubscriptionStatus @default(PENDING)
+  method String @default("manual_transfer")
+  reference String?
+  startsAt DateTime?
+  expiresAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, status, expiresAt])
+}
+
+// ================= PASSWORD RESET =================
+enum PasswordResetStatus {
+  PENDING
+  USED
+  LOCKED
+  EXPIRED
+}
+
+model PasswordResetToken {
+  id            String             @id @default(uuid())
+  userId        String
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash     String             @unique
+  encryptedCode String             @default("")
+  expiresAt     DateTime
+  usedAt        DateTime?
+  attempts      Int                @default(0)
+  status        PasswordResetStatus @default(PENDING)
+  requestIp     String?
+  revealedAt    DateTime?
+  createdAt     DateTime            @default(now())
+
+  @@index([userId, status, createdAt])
+  @@index([requestIp, createdAt])
+}
+
+// ================= OFFERS / PROMOTIONS =================
+model Offer {
+  id            String    @id @default(uuid())
+  title         String
+  description   String?
+  oldPriceCents Int?
+  newPriceCents Int
+  discountPct   Int?
+  currency      String    @default("USD")
+  packageId     String?
+  targetGender  String    @default("ALL")
+  targetCountry String    @default("WORLDWIDE")
+  audience      String    @default("ALL")
+  targetUserId  String?
+  targetVip     Boolean   @default(false)
+  minTasks      Int       @default(0)
+  maxTasks      Int?
+  minPoints     BigInt    @default(0)
+  maxPoints     BigInt?
+  pointsOverride BigInt?
+  showNotification Boolean @default(true)
+  notificationSent Boolean @default(false)
+  maxClaimsPerUser Int?
+  startsAt      DateTime?
+  endsAt        DateTime?
+  isActive      Boolean   @default(true)
+  sortOrder     Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  purchases     Purchase[]
+
+  @@index([isActive, sortOrder])
+  @@index([audience, targetUserId])
+}
