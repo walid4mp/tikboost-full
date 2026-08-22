@@ -68,7 +68,7 @@ void main() {
   testWidgets('light theme renders brand title', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
-        theme: AppTheme.light,
+        theme: AppTheme.light(),
         home: const Scaffold(
           body: Center(child: Text('TokAura')),
         ),
