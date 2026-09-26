@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "84812691658",
+    "project_id": "tikboost-df79c",
+    "storage_bucket": "tikboost-df79c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:84812691658:android:e87e03b0529420c3bf5c33",
+        "android_client_info": {
+          "package_name": "com.tikboost.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAgSTX7LiCKvxcbPX3eoHB_3ms_GPWZInk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
