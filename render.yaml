@@ -1,0 +1,75 @@
+services:
+  - type: web
+    name: tikboost-api-v2
+    runtime: node
+    plan: free
+    autoDeploy: true
+    buildCommand: cd backend && npm run render:build
+    startCommand: cd backend && npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: APP_NAME
+        value: TikBoost
+      - key: APP_URL
+        value: https://tikboost-api-v2.onrender.com
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_ACCESS_EXPIRES
+        value: 15m
+      - key: JWT_REFRESH_EXPIRES
+        value: 30d
+      - key: BCRYPT_ROUNDS
+        value: "10"
+      - key: SEED_ADMIN_EMAIL
+        value: admin1@tikboost.app
+      - key: SEED_ADMIN_PASSWORD
+        value: Admin@123456
+      - key: SEED_ADMIN_NAME
+        value: Super Admin
+      - key: TASK_COOLDOWN_SECONDS
+        value: "8"
+      - key: MAX_CAMPAIGNS_PER_USER
+        value: "20"
+      - key: FREEZE_DURATION_MIN
+        value: "60"
+      - key: SOCKET_CORS_ORIGIN
+        value: "*"
+      - key: ENABLE_GOOGLE_LOGIN
+        value: "true"
+
+      # ===== Email delivery (HTTPS provider — Render free tier blocks outbound SMTP) =====
+      # EMAIL_PROVIDER: resend (default) | brevo | mailgun | smtp
+      - key: EMAIL_PROVIDER
+        value: resend
+      # EMAIL_API_KEY is set manually in the Render dashboard — NEVER committed.
+      - key: EMAIL_API_KEY
+        sync: false
+      # Optional, only when EMAIL_PROVIDER=mailgun
+      - key: MAILGUN_DOMAIN
+        sync: false
+      - key: MAIL_FROM
+        value: TikBoost <onboarding@resend.dev>
+      - key: PASSWORD_RESET_TTL_MIN
+        value: "10"
+      # 32-byte secret used to encrypt manual password-reset OTPs at rest.
+      - key: RESET_OTP_ENCRYPTION_KEY
+        generateValue: true
+
+      # ===== Legacy SMTP (kept only for EMAIL_PROVIDER=smtp opt-in) =====
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: "465"
+      - key: SMTP_USER
+        value: tikboost.wh@gmail.com
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_SECURE
+        value: "true"
+

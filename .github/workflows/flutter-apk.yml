@@ -1,0 +1,44 @@
+name: Build TikBoost APK
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'flutter-app/**'
+      - '.github/workflows/flutter-apk.yml'
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: flutter-app
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Flutter version
+        run: flutter --version
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build APK
+        run: |
+          flutter build apk --release \
+            --dart-define=API_BASE_URL=https://tikboost-api-v2.onrender.com/api \
+            --dart-define=SOCKET_URL=https://tikboost-api-v2.onrender.com
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: tikboost-release-apk
+          path: flutter-app/build/app/outputs/flutter-apk/app-release.apk
