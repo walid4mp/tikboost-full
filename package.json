@@ -1,0 +1,11 @@
+{
+  "name": "tikboost-workspace",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "postinstall": "npm --prefix backend install",
+    "dev": "npm --prefix backend run dev",
+    "build": "npm --prefix backend run render:build",
+    "test": "npm --prefix backend run test:ci"
+  }
+}
