@@ -1403,3 +1403,36 @@ function startPasswordResetPolling() {
   }, 15000);
 }
 startPasswordResetPolling();
+
+
+/* ===== v4 responsive shell: drawer backdrop, scroll lock, a11y (non-invasive) ===== */
+(function tikboostResponsiveShell(){
+  const side = document.getElementById('sidebar');
+  const mainEl = document.getElementById('main');
+  if (!side) return;
+
+  const backdrop = document.createElement('div');
+  backdrop.id = 'navBackdrop';
+  document.body.appendChild(backdrop);
+
+  const isOpen = () => side.classList.contains('open') && window.innerWidth <= 980;
+  function sync() {
+    const open = isOpen();
+    backdrop.classList.toggle('show', open);
+    document.body.classList.toggle('nav-open', open);
+    const btn = document.getElementById('toggleSidebar');
+    if (btn) btn.setAttribute('aria-expanded', String(open));
+  }
+
+  // Mirror the existing toggle logic instead of adding a second, conflicting handler.
+  new MutationObserver(sync).observe(side, { attributes: true, attributeFilter: ['class'] });
+  backdrop.addEventListener('click', () => side.classList.remove('open'));
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && isOpen()) side.classList.remove('open');
+  });
+  window.addEventListener('resize', sync);
+  sync();
+
+  // Keep the page title in the tab and mark the shell as ready for layout breakpoints.
+  if (mainEl) mainEl.dataset.responsive = 'v4';
+})();
