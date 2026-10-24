@@ -341,7 +341,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
             const SizedBox(height: 12),
             Row(children: [
-              Expanded(child: OutlinedButton.icon(onPressed: dailyLogin['claimedToday'] == true || busy ? null : () async { await SoundService.instance.playTap(); await _claimDailyLogin(); }, icon: const Icon(Icons.calendar_today_rounded), label: Text(context.tr('daily_reward')))),
+              Expanded(child: OutlinedButton.icon(onPressed: dailyLogin['claimedToday'] == true || busy ? null : () async { await SoundService.instance.playTap(); await _claimDailyLogin(); }, icon: Icon(Icons.calendar_today_rounded), label: Text(context.tr('daily_reward')))),
               const SizedBox(width: 10),
               Expanded(child: OutlinedButton.icon(onPressed: chest['available'] == true && !busy ? () async { await SoundService.instance.playTap(); await _openChest(); } : null, icon: const Icon(Icons.card_giftcard_rounded), label: const Text('الصندوق'))),
             ]),

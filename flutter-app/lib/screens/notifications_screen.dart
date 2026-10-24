@@ -182,11 +182,11 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         child: loading
             ? const Center(child: CircularProgressIndicator())
             : items.isEmpty
-                ? ListView(children: const [
-                    SizedBox(height: 180),
+                ? ListView(children: [
+                    const SizedBox(height: 180),
                     Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      Icon(Icons.notifications_off_outlined, size: 60, color: AppColors.textMuted),
-                      SizedBox(height: 10),
+                      const Icon(Icons.notifications_off_outlined, size: 60, color: AppColors.textMuted),
+                      const SizedBox(height: 10),
                       Text(context.tr('no_notifications')),
                     ])),
                   ])

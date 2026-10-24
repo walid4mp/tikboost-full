@@ -38,7 +38,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
       onRefresh: load,
       child: loading ? const Center(child: CircularProgressIndicator()) : error != null
         ? ListView(children: [const SizedBox(height: 160), Center(child: Text(error!))])
-        : items.isEmpty ? ListView(children: [const SizedBox(height: 160), Center(child: Text(context.tr('no_payments')))])
+        : items.isEmpty ? ListView(children: [SizedBox(height: 160), Center(child: Text(context.tr('no_payments')))])
         : ListView.separated(padding: const EdgeInsets.all(16), itemCount: items.length, separatorBuilder: (_,__) => const SizedBox(height: 10), itemBuilder: (_,i) {
           final x = Map<String,dynamic>.from(items[i]); final status='${x['status'] ?? 'PENDING'}';
           final method=Map<String,dynamic>.from(x['paymentMethod'] ?? const {}); final price=(double.tryParse('${x['priceCents'] ?? 0}') ?? 0)/100;

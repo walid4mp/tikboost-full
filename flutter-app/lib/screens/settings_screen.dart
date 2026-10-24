@@ -43,7 +43,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 showDragHandle: true,
                 builder: (sheetContext) => SafeArea(
                   child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    Padding(padding: const EdgeInsets.all(16), child: Text(context.tr('choose_language'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900))),
+                    Padding(padding: const EdgeInsets.all(16), child: Text(context.tr('choose_language'), style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900))),
                     for (final item in const [('ar','العربية'), ('fr','Français'), ('en','English')])
                       ListTile(leading: Text(item.$1 == 'ar' ? '🇩🇿' : item.$1 == 'fr' ? '🇫🇷' : '🇬🇧', style: const TextStyle(fontSize: 22)), title: Text(item.$2), trailing: theme.languageCode == item.$1 ? const Icon(Icons.check_circle, color: AppColors.success) : null, onTap: () async { await theme.setLanguage(item.$1); if (sheetContext.mounted) Navigator.pop(sheetContext); }),
                     const SizedBox(height: 8),
