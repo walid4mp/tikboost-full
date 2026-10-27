@@ -133,21 +133,11 @@ jobs:
       - name: Run widget tests
         run: flutter test
 
-      - name: Build release APK
-        run: |
-          flutter build apk --release \
-            --dart-define=API_BASE_URL=https://tikboost-api-v2.onrender.com/api \
-            --dart-define=SOCKET_URL=https://tikboost-api-v2.onrender.com \
-            --dart-define=ENABLE_GOOGLE_LOGIN=false \
-            --dart-define=ALLOW_LEGACY_PASSWORD_RESET=false
+            - name: Build release APK
+        run: flutter build apk --release --dart-define=API_BASE_URL=https://tikboost-api-v2.onrender.com/api --dart-define=SOCKET_URL=https://tikboost-api-v2.onrender.com --dart-define=ENABLE_GOOGLE_LOGIN=false --dart-define=ALLOW_LEGACY_PASSWORD_RESET=false
 
-      - name: Build release AAB
-        run: |
-          flutter build appbundle --release \
-            --dart-define=API_BASE_URL=https://tikboost-api-v2.onrender.com/api \
-            --dart-define=SOCKET_URL=https://tikboost-api-v2.onrender.com \
-            --dart-define=ENABLE_GOOGLE_LOGIN=false \
-            --dart-define=ALLOW_LEGACY_PASSWORD_RESET=false
+            - name: Build release AAB
+        run: flutter build appbundle --release --dart-define=API_BASE_URL=https://tikboost-api-v2.onrender.com/api --dart-define=SOCKET_URL=https://tikboost-api-v2.onrender.com --dart-define=ENABLE_GOOGLE_LOGIN=false --dart-define=ALLOW_LEGACY_PASSWORD_RESET=false
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
