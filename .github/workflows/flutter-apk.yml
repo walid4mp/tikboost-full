@@ -1,32 +1,25 @@
+
 name: Build TikBoost APK
 
 on:
   workflow_dispatch:
   push:
-    paths:
-      - 'flutter-app/**'
-      - '.github/workflows/flutter-apk.yml'
+    branches:
+      - main
 
 jobs:
   build-apk:
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        working-directory: flutter-app
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Java 17
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-
-      - name: Confirm Java version
-        run: java -version
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -34,16 +27,25 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Flutter version
-        run: flutter --version
-
       - name: Install dependencies
+        working-directory: flutter-app
         run: flutter pub get
 
-            - name: Build APK
-        run: flutter build apk --release 
-        --dart-define=API_BASE_URL=https://tikboost-api-v2.onrender.com/api 
-       --dart-define=SOCKET_URL=https://tikboost-api-v2.onrender.com
+      - name: Analyze Flutter
+        working-directory: flutter-app
+        run: flutter analyze
+
+      - name: Run tests
+        working-directory: flutter-app
+        run: flutter test
+
+      - name: Build APK
+        working-directory: flutter-app
+        run: flutter build apk --release --dart-define=API_BASE_URL=https://tikboost-api-v2.onrender.com/api --dart-define=SOCKET_URL=https://tikboost-api-v2.onrender.com
+
+      - name: Verify APK
+        working-directory: flutter-app
+        run: test -f build/app/outputs/flutter-apk/app-release.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
