@@ -10,7 +10,7 @@ import '../providers/auth_provider.dart';
 import '../services/api_client.dart';
 import '../services/sound_service.dart';
 
-const _adminRoles = ['ADMIN', 'SUPER_ADMIN', 'MODERATOR', 'FINANCE'];
+const _adminRoles = ['ADMIN', 'SUPER_ADMIN', 'MODERATOR', 'FINANCE', 'DEVELOPER'];
 
 /// Full in-app admin console. It talks to the same secured `/admin/*` API as
 /// the web panel, so every action is permission-checked and logged by the

@@ -13,24 +13,34 @@ class AdMobService {
   static final AdMobService instance = AdMobService._();
 
   static const String _fallbackBannerAdUnitId =
-      'ca-app-pub-3940256099942544/6300978111';
+      'ca-app-pub-5844737250635220/5064241834';
   static const String _fallbackNativeAdUnitId =
-      'ca-app-pub-3940256099942544/2247696110';
+      'ca-app-pub-5844737250635220/3998572171';
   static const String _fallbackRewardedAdUnitId =
       'ca-app-pub-3940256099942544/5224354917';
   static const String _fallbackInterstitialAdUnitId =
-      'ca-app-pub-3940256099942544/1033173712';
+      'ca-app-pub-5844737250635220/1209803484';
+  static const String _fallbackRewardedInterstitialAdUnitId =
+      'ca-app-pub-5844737250635220/3250090571';
+  static const String _fallbackRewardedInterstitialAdUnitIdSecondary =
+      'ca-app-pub-5844737250635220/5688551653';
+  static const String _fallbackAppOpenAdUnitId =
+      'ca-app-pub-5844737250635220/9850710830';
 
   Map<String, dynamic> _adsConfig = const <String, dynamic>{};
   bool _adsSuppressed = false;
 
-  bool get bannerEnabled => !_adsSuppressed && _boolValue('bannerEnabled', true);
-  bool get nativeEnabled => !_adsSuppressed && _boolValue('nativeEnabled', true);
-  bool get rewardedEnabled => !_adsSuppressed && _boolValue('rewardedEnabled', true);
-  bool get interstitialEnabled => !_adsSuppressed && _boolValue('interstitialEnabled', true);
-  bool get autoInterstitialEnabled => !_adsSuppressed && _boolValue('autoInterstitialEnabled', true);
+  bool get adsEnabled => !_adsSuppressed && _boolValue('adsEnabled', true);
+  bool get bannerEnabled => adsEnabled && _boolValue('bannerEnabled', true);
+  bool get nativeEnabled => adsEnabled && _boolValue('nativeEnabled', true);
+  bool get rewardedEnabled => adsEnabled && _boolValue('rewardedEnabled', true);
+  bool get interstitialEnabled => adsEnabled && _boolValue('interstitialEnabled', true);
+  bool get autoInterstitialEnabled => adsEnabled && _boolValue('autoInterstitialEnabled', true);
+  bool get rewardedInterstitialEnabled => adsEnabled && _boolValue('rewardedInterstitialEnabled', true);
+  bool get appOpenEnabled => adsEnabled && _boolValue('appOpenEnabled', true);
   int get interstitialIntervalMinutes => _intValue('interstitialIntervalMinutes', 20);
-  bool get customBannerEnabled => !_adsSuppressed && _boolValue('customBannerEnabled', false);
+  int get appOpenMinIntervalMinutes => _intValue('appOpenMinIntervalMinutes', 60);
+  bool get customBannerEnabled => adsEnabled && _boolValue('customBannerEnabled', false);
   String get customBannerImageUrl => _stringValue('customBannerImageUrl', '');
   String get customBannerLinkUrl {
     final value = _stringValue('customBannerLinkUrl', '');
@@ -49,9 +59,16 @@ class AdMobService {
   String get rewardedAdUnitId => _stringValue('rewardedUnitId', _fallbackRewardedAdUnitId);
   String get interstitialAdUnitId =>
       _stringValue('interstitialUnitId', _fallbackInterstitialAdUnitId);
+  String get rewardedInterstitialAdUnitId =>
+      _stringValue('rewardedInterstitialUnitId', _fallbackRewardedInterstitialAdUnitId);
+  String get rewardedInterstitialAdUnitIdSecondary =>
+      _stringValue('rewardedInterstitialUnitIdSecondary', _fallbackRewardedInterstitialAdUnitIdSecondary);
+  String get appOpenAdUnitId =>
+      _stringValue('appOpenUnitId', _fallbackAppOpenAdUnitId);
 
   Future<InitializationStatus> initialize() async {
     await _loadRemoteConfig();
+    _applyDebugTestIds();
     return MobileAds.instance.initialize();
   }
 
@@ -70,9 +87,25 @@ class AdMobService {
       final response = await dio.get('/user/ad-config', options: Options(headers: {'Authorization': 'Bearer $token'}));
       _adsConfig = Map<String, dynamic>.from(response.data['ads'] ?? _adsConfig);
       _adsSuppressed = response.data['adsSuppressed'] == true;
+      _applyDebugTestIds();
     } catch (_) {
       // Keep the public config if the authenticated policy request fails.
     }
+  }
+
+
+  void _applyDebugTestIds() {
+    if (!kDebugMode) return;
+    _adsConfig = {
+      ..._adsConfig,
+      'bannerUnitId': 'ca-app-pub-3940256099942544/6300978111',
+      'interstitialUnitId': 'ca-app-pub-3940256099942544/1033173712',
+      'rewardedUnitId': 'ca-app-pub-3940256099942544/5224354917',
+      'nativeUnitId': 'ca-app-pub-3940256099942544/2247696110',
+      'rewardedInterstitialUnitId': 'ca-app-pub-3940256099942544/5354046379',
+      'rewardedInterstitialUnitIdSecondary': 'ca-app-pub-3940256099942544/5354046379',
+      'appOpenUnitId': 'ca-app-pub-3940256099942544/9257395921',
+    };
   }
 
   Future<String?> _readAccessToken() async {
@@ -164,15 +197,23 @@ class AdMobService {
     return completer.future;
   }
 
+  // The account has two Rewarded Interstitial units (not standard Rewarded
+  // units). Keep the existing call site compatible while using the correct
+  // Google Mobile Ads format.
   Future<bool> showRewardedAd() async {
-    if (!rewardedEnabled) return false;
+    if (!rewardedEnabled || !rewardedInterstitialEnabled) return false;
+    return showRewardedInterstitialAd();
+  }
+
+  Future<bool> showRewardedInterstitialAd({bool useSecondaryUnit = false}) async {
+    if (!rewardedInterstitialEnabled) return false;
     final completer = Completer<bool>();
-    RewardedAd.load(
-      adUnitId: rewardedAdUnitId,
+    RewardedInterstitialAd.load(
+      adUnitId: useSecondaryUnit ? rewardedInterstitialAdUnitIdSecondary : rewardedInterstitialAdUnitId,
       request: const AdRequest(),
-      rewardedAdLoadCallback: RewardedAdLoadCallback(
+      rewardedInterstitialAdLoadCallback: RewardedInterstitialAdLoadCallback(
         onAdLoaded: (ad) {
-          recordAdEvent('REWARDED');
+          recordAdEvent('REWARDED_INTERSTITIAL');
           var rewarded = false;
           ad.fullScreenContentCallback = FullScreenContentCallback(
             onAdDismissedFullScreenContent: (ad) {
@@ -184,12 +225,39 @@ class AdMobService {
               if (!completer.isCompleted) completer.complete(false);
             },
           );
-          ad.show(
-            onUserEarnedReward: (_, __) {
-              rewarded = true;
-              recordAdEvent('REWARDED', event: 'COMPLETED');
+          ad.show(onUserEarnedReward: (_, __) {
+            rewarded = true;
+            recordAdEvent('REWARDED_INTERSTITIAL', event: 'COMPLETED');
+          });
+        },
+        onAdFailedToLoad: (_) {
+          if (!completer.isCompleted) completer.complete(false);
+        },
+      ),
+    );
+    return completer.future;
+  }
+
+  Future<bool> showAppOpenAd() async {
+    if (!appOpenEnabled) return false;
+    final completer = Completer<bool>();
+    AppOpenAd.load(
+      adUnitId: appOpenAdUnitId,
+      request: const AdRequest(),
+      adLoadCallback: AppOpenAdLoadCallback(
+        onAdLoaded: (ad) {
+          recordAdEvent('APP_OPEN');
+          ad.fullScreenContentCallback = FullScreenContentCallback(
+            onAdDismissedFullScreenContent: (ad) {
+              ad.dispose();
+              if (!completer.isCompleted) completer.complete(true);
+            },
+            onAdFailedToShowFullScreenContent: (ad, _) {
+              ad.dispose();
+              if (!completer.isCompleted) completer.complete(false);
             },
           );
+          ad.show();
         },
         onAdFailedToLoad: (_) {
           if (!completer.isCompleted) completer.complete(false);

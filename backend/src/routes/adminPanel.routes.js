@@ -6,7 +6,7 @@ const { signAccess, signRefresh, verifyRefresh } = require('../utils/jwt');
 const { truthyIp, randomToken } = require('../utils/helpers');
 const { setAuthCookies } = require('../utils/authCookies');
 
-const ADMIN_ROLES = ['ADMIN', 'SUPER_ADMIN', 'MODERATOR', 'FINANCE'];
+const ADMIN_ROLES = ['ADMIN', 'SUPER_ADMIN', 'MODERATOR', 'FINANCE', 'DEVELOPER'];
 
 async function issueAdminTokens(user) {
   const accessToken = signAccess({ sub: user.id, role: user.role });

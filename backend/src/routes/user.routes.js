@@ -1,9 +1,10 @@
 const r = require('express').Router();
 const { authRequired } = require('../middleware/auth');
+const maintenanceGuard = require('../middleware/maintenanceGuard');
 const validate = require('../middleware/validate');
 const ctrl = require('../controllers/user.controller');
 
-r.use(authRequired);
+r.use(authRequired, maintenanceGuard);
 r.get   ('/profile',            ctrl.getProfile);
 r.put   ('/profile',            ctrl.updateProfileValidators, validate, ctrl.updateProfile);
 r.post  ('/profile/complete',   ctrl.completeProfileValidators, validate, ctrl.completeProfile);

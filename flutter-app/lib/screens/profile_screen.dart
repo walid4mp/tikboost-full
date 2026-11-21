@@ -182,7 +182,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 onTap: () { SoundService.instance.playTap(); context.push('/missions'); },
               ),
             ),
-            if (user != null && ['ADMIN', 'SUPER_ADMIN', 'MODERATOR', 'FINANCE'].contains(user.role)) ...[
+            if (user != null && ['ADMIN', 'SUPER_ADMIN', 'MODERATOR', 'FINANCE', 'DEVELOPER'].contains(user.role)) ...[
               const SizedBox(height: 10),
               Card(
                 child: ListTile(

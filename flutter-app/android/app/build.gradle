@@ -54,9 +54,9 @@ if (releaseStoreFilePath) {
 def hasReleaseSigning = releaseStoreFile != null && releaseStoreFile.exists() &&
         releaseStorePassword && releaseKeyAlias && releaseKeyPassword
 
-// AdMob application id. The default is Google's public TEST id: replace it with
-// your real id via -PADMOB_APP_ID=... or the ADMOB_APP_ID environment variable.
-def admobAppId = project.findProperty('ADMOB_APP_ID') ?: System.getenv('ADMOB_APP_ID') ?: 'ca-app-pub-3940256099942544~3347511713'
+// AdMob application id. Release uses the TikBoost AdMob app id; debug builds
+// override the manifest placeholder with Google's official test app id.
+def admobAppId = project.findProperty('ADMOB_APP_ID') ?: System.getenv('ADMOB_APP_ID') ?: 'ca-app-pub-5844737250635220~8757121017'
 
 android {
     namespace 'com.tikboost.wh.app'
@@ -95,6 +95,9 @@ android {
     }
 
     buildTypes {
+        debug {
+            manifestPlaceholders = [applicationName: "android.app.Application", admobAppId: 'ca-app-pub-3940256099942544~3347511713']
+        }
         release {
             // Play Store builds must be signed with the upload key. When no key is
             // configured we fall back to the debug key so local/CI test builds still

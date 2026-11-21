@@ -40,7 +40,7 @@ async function resolveAudience(input = {}) {
       where = { status: 'ACTIVE' };
       break;
     case 'VIP_PRO':
-      where = { status: 'ACTIVE', vipProUntil: { gt: now } };
+      where = { status: 'ACTIVE', OR: [{ role: 'DEVELOPER' }, { vipProUntil: { gt: now } }] };
       break;
     case 'INACTIVE': {
       const cutoff = new Date(now.getTime() - clampInt(input.days, 1, 365, 7) * DAY);

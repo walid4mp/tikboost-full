@@ -10,7 +10,7 @@ import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 import '../services/sound_service.dart';
 
-const _adminRoles = ['ADMIN', 'SUPER_ADMIN', 'MODERATOR', 'FINANCE'];
+const _adminRoles = ['ADMIN', 'SUPER_ADMIN', 'MODERATOR', 'FINANCE', 'DEVELOPER'];
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});

@@ -38,6 +38,7 @@ const MIGRATION_NAMES = [
   '20260818193000_add_personal_offers_and_vip_tools',
   '20260821160000_add_fcm_push_notifications',
   '20260901120000_add_device_tokens',
+  '20261121190000_add_developer_role_and_ad_types',
 ];
 
 // Each entry MUST remain a single SQL statement.
@@ -54,7 +55,15 @@ const ENUM_STATEMENTS = [
    END $$`,
   `DO $$ BEGIN
      IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'AdType') THEN
-       CREATE TYPE "AdType" AS ENUM ('BANNER', 'INTERSTITIAL', 'REWARDED', 'NATIVE', 'CUSTOM_BANNER');
+       CREATE TYPE "AdType" AS ENUM ('BANNER', 'INTERSTITIAL', 'REWARDED', 'NATIVE', 'CUSTOM_BANNER', 'APP_OPEN', 'REWARDED_INTERSTITIAL');
+     ELSE
+       ALTER TYPE "AdType" ADD VALUE IF NOT EXISTS 'APP_OPEN';
+       ALTER TYPE "AdType" ADD VALUE IF NOT EXISTS 'REWARDED_INTERSTITIAL';
+     END IF;
+   END $$`,
+  `DO $$ BEGIN
+     IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'UserRole') THEN
+       ALTER TYPE "UserRole" ADD VALUE IF NOT EXISTS 'DEVELOPER';
      END IF;
    END $$`,
   `DO $$ BEGIN

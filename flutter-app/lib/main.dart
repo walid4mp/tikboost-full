@@ -171,6 +171,9 @@ class _TikBoostAppState extends ConsumerState<TikBoostApp> with WidgetsBindingOb
   Timer? _interstitialTimer;
   DateTime? _nextInterstitialAt;
   bool _showingAutomaticInterstitial = false;
+  bool _hasBeenBackgrounded = false;
+  bool _showingAppOpenAd = false;
+  DateTime? _nextAppOpenAt;
 
   @override
   void initState() {
@@ -193,7 +196,7 @@ class _TikBoostAppState extends ConsumerState<TikBoostApp> with WidgetsBindingOb
   }
 
   Future<void> _maybeShowAutomaticInterstitial() async {
-    if (!mounted || _showingAutomaticInterstitial || WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) return;
+    if (!mounted || _showingAutomaticInterstitial || _showingAppOpenAd || WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) return;
     final user = ref.read(authProvider).state.user;
     if (user == null || !AdMobService.instance.interstitialEnabled || !AdMobService.instance.autoInterstitialEnabled) {
       _nextInterstitialAt = null;
@@ -217,8 +220,20 @@ class _TikBoostAppState extends ConsumerState<TikBoostApp> with WidgetsBindingOb
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive || state == AppLifecycleState.hidden) {
+      _hasBeenBackgrounded = true;
+    }
     if (state == AppLifecycleState.resumed) {
       PushNotificationService.instance.onAppResumed();
+      if (_hasBeenBackgrounded && !_showingAppOpenAd) {
+        _hasBeenBackgrounded = false;
+        final now = DateTime.now();
+        if (_nextAppOpenAt == null || !now.isBefore(_nextAppOpenAt!)) {
+          _showingAppOpenAd = true;
+          _nextAppOpenAt = now.add(Duration(minutes: AdMobService.instance.appOpenMinIntervalMinutes));
+          AdMobService.instance.showAppOpenAd().whenComplete(() { _showingAppOpenAd = false; });
+        }
+      }
       _maybeShowAutomaticInterstitial();
     }
   }
