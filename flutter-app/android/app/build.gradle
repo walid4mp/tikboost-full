@@ -1,0 +1,153 @@
+plugins {
+    id 'com.android.application'
+    id 'kotlin-android'
+    id 'dev.flutter.flutter-gradle-plugin'
+    id 'com.google.gms.google-services'
+}
+
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file('local.properties')
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withReader('UTF-8') { reader ->
+        localProperties.load(reader)
+    }
+}
+
+def flutterVersionCode = localProperties.getProperty('flutter.versionCode') ?: '1'
+def flutterVersionName = localProperties.getProperty('flutter.versionName') ?: '1.0'
+
+// ---------------------------------------------------------------------------
+// Release signing (Google Play upload key)
+//
+// Values come from android/key.properties (local builds) or from environment
+// variables (CI). Neither the keystore nor key.properties is ever committed.
+//   storeFile / ANDROID_KEYSTORE_PATH
+//   storePassword / ANDROID_KEYSTORE_PASSWORD
+//   keyAlias / ANDROID_KEY_ALIAS
+//   keyPassword / ANDROID_KEY_PASSWORD
+// ---------------------------------------------------------------------------
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file('key.properties')
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.withReader('UTF-8') { reader ->
+        keystoreProperties.load(reader)
+    }
+}
+
+def signingValue = { String propertyKey, String envKey ->
+    def fromFile = keystoreProperties.getProperty(propertyKey)
+    return (fromFile != null && !fromFile.trim().isEmpty()) ? fromFile.trim() : System.getenv(envKey)
+}
+
+def releaseStoreFilePath = signingValue('storeFile', 'ANDROID_KEYSTORE_PATH')
+def releaseStorePassword = signingValue('storePassword', 'ANDROID_KEYSTORE_PASSWORD')
+def releaseKeyAlias = signingValue('keyAlias', 'ANDROID_KEY_ALIAS')
+def releaseKeyPassword = signingValue('keyPassword', 'ANDROID_KEY_PASSWORD')
+
+// A relative storeFile in key.properties is resolved from the android/app folder.
+def releaseStoreFile = null
+if (releaseStoreFilePath) {
+    def candidate = file(releaseStoreFilePath)
+    releaseStoreFile = candidate.exists() ? candidate : rootProject.file(releaseStoreFilePath)
+}
+
+def hasReleaseSigning = releaseStoreFile != null && releaseStoreFile.exists() &&
+        releaseStorePassword && releaseKeyAlias && releaseKeyPassword
+
+// AdMob application id. The default is Google's public TEST id: replace it with
+// your real id via -PADMOB_APP_ID=... or the ADMOB_APP_ID environment variable.
+def admobAppId = project.findProperty('ADMOB_APP_ID') ?: System.getenv('ADMOB_APP_ID') ?: 'ca-app-pub-3940256099942544~3347511713'
+
+android {
+    namespace 'com.tikboost.wh.app'
+    compileSdk flutter.compileSdkVersion
+    ndkVersion flutter.ndkVersion
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+        coreLibraryDesugaringEnabled true
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+
+    defaultConfig {
+        applicationId 'com.tikboost.wh.app'
+        minSdk flutter.minSdkVersion
+        targetSdk flutter.targetSdkVersion
+        versionCode flutterVersionCode.toInteger()
+        versionName flutterVersionName
+        multiDexEnabled true
+        manifestPlaceholders = [applicationName: "android.app.Application", admobAppId: admobAppId]
+    }
+
+    signingConfigs {
+        release {
+            if (hasReleaseSigning) {
+                storeFile releaseStoreFile
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            // Play Store builds must be signed with the upload key. When no key is
+            // configured we fall back to the debug key so local/CI test builds still
+            // work, but such a build is REJECTED by Google Play (see the guard below).
+            signingConfig hasReleaseSigning ? signingConfigs.release : signingConfigs.debug
+            // R8 shrinking is OFF on purpose. With AGP 9 it removed the constructor of
+            // androidx.work.impl.WorkDatabase_Impl (created by reflection through androidx.startup),
+            // which crashed the app at launch ("tikboost.wh keeps stopping"). Resource shrinking
+            // would also strip res/raw/notify, which is only referenced by name.
+            minifyEnabled false
+            shrinkResources false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // Native debug symbols make crash reports in Play Console readable.
+            ndk {
+                debugSymbolLevel 'SYMBOL_TABLE'
+            }
+        }
+    }
+
+    lint {
+        // Flutter apps are checked with `flutter analyze`; Android lint-vital often fails
+        // on third-party plugin issues that cannot be fixed here.
+        checkReleaseBuilds false
+        abortOnError false
+    }
+}
+
+// Fail fast (instead of producing an unusable Play bundle) when a release artifact is
+// requested while a real signing key is mandatory: REQUIRE_RELEASE_SIGNING=true.
+gradle.taskGraph.whenReady { graph ->
+    def releaseTask = graph.allTasks.find {
+        it.path == ':app:bundleRelease' || it.path == ':app:assembleRelease'
+    }
+    if (releaseTask != null) {
+        if (!hasReleaseSigning) {
+            def message = 'Release build is NOT signed with a Google Play upload key (using the debug key). ' +
+                    'Provide android/key.properties or ANDROID_KEYSTORE_* environment variables.'
+            if (System.getenv('REQUIRE_RELEASE_SIGNING') == 'true') {
+                throw new GradleException(message)
+            }
+            logger.warn('WARNING: ' + message)
+        } else {
+            logger.lifecycle('Release signing: upload key found, alias=' + releaseKeyAlias)
+        }
+    }
+}
+
+dependencies {
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
+    // Required by the custom TikBoostMessagingService Kotlin class.
+    implementation 'com.google.firebase:firebase-messaging:24.1.2'
+}
+
+flutter {
+    source '../..'
+}

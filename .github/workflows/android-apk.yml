@@ -1,0 +1,187 @@
+name: Build and Release Android Artifacts
+
+permissions:
+  contents: write
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+    tags:
+      - "v*"
+    paths:
+      - "backend/**"
+      - "flutter-app/**"
+      - "admin-panel/**"
+      - ".github/workflows/android-apk.yml"
+      - "render.yaml"
+      - "README.md"
+
+jobs:
+  backend-check:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tikboost_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d tikboost_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    defaults:
+      run:
+        working-directory: backend
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/tikboost_test?schema=public
+      JWT_ACCESS_SECRET: gha_access_secret_change_me
+      JWT_REFRESH_SECRET: gha_refresh_secret_change_me
+      ENABLE_GOOGLE_LOGIN: "false"
+      ENABLE_LEGACY_PASSWORD_RESET: "false"
+      SEED_ADMIN_PASSWORD: StrongTempAdminPassword_123
+      SEED_ADMIN_EMAIL: admin@tikboost.app
+      NODE_ENV: test
+      SOCKET_CORS_ORIGIN: "*"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate --schema=prisma/schema.prisma
+
+      - name: Verify Prisma client fields
+        run: npm run prisma:verify-client
+
+      - name: Apply Prisma migrations to CI database
+        run: npx prisma migrate deploy --schema=prisma/schema.prisma
+
+      - name: Run backend CI tests
+        run: npm run test:ci
+
+      - name: Check backend syntax
+        run: npm run check:syntax
+
+      - name: Smoke-load Express app
+        run: node -e "const app=require('./src/app'); console.log('backend ok', !!app)"
+
+  build-apk:
+    runs-on: ubuntu-latest
+    needs: backend-check
+
+    defaults:
+      run:
+        working-directory: flutter-app
+
+    env:
+      # Google Play upload key (GitHub repo secrets). See GOOGLE_PLAY_RELEASE_AR.md.
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      ADMOB_APP_ID: ${{ secrets.ADMOB_APP_ID }}
+      # Tagged releases (v*) must be signed with the real upload key.
+      REQUIRE_RELEASE_SIGNING: ${{ startsWith(github.ref, 'refs/tags/v') && 'true' || 'false' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Flutter version
+        run: flutter --version
+
+      - name: Verify Android project files
+        run: |
+          test -f android/settings.gradle
+          test -f android/build.gradle
+          test -f android/app/build.gradle
+          test -f android/app/src/main/AndroidManifest.xml
+          test -f android/app/src/main/java/com/tikboost/wh/app/TikBoostMessagingService.java
+          test ! -e android/app/build.gradle.kts
+          test ! -e android/build.gradle.kts
+          grep -q "gradle-9" android/gradle/wrapper/gradle-wrapper.properties
+
+      - name: Decode Google Play upload keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/upload-keystore.jks"
+            echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/upload-keystore.jks" >> "$GITHUB_ENV"
+            echo "Upload keystore decoded."
+          else
+            echo "::warning::ANDROID_KEYSTORE_BASE64 secret is not set. The build is signed with the DEBUG key and Google Play will reject it."
+          fi
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze Flutter code
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Run widget tests
+        run: flutter test
+
+      - name: Build release APK
+        run: flutter build apk --release --dart-define=API_BASE_URL=https://tikboost-api-v2.onrender.com/api --dart-define=SOCKET_URL=https://tikboost-api-v2.onrender.com --dart-define=ENABLE_GOOGLE_LOGIN=false --dart-define=ALLOW_LEGACY_PASSWORD_RESET=false
+
+      - name: Build release AAB (Google Play)
+        run: flutter build appbundle --release --dart-define=API_BASE_URL=https://tikboost-api-v2.onrender.com/api --dart-define=SOCKET_URL=https://tikboost-api-v2.onrender.com --dart-define=ENABLE_GOOGLE_LOGIN=false --dart-define=ALLOW_LEGACY_PASSWORD_RESET=false
+
+      - name: Show AAB signing certificate
+        run: |
+          keytool -printcert -jarfile build/app/outputs/bundle/release/app-release.aab > "$RUNNER_TEMP/aab-cert.txt" 2>&1 || true
+          head -12 "$RUNNER_TEMP/aab-cert.txt"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tikboost-release-apk
+          path: flutter-app/build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tikboost-release-aab
+          path: flutter-app/build/app/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            flutter-app/build/app/outputs/flutter-apk/app-release.apk
+            flutter-app/build/app/outputs/bundle/release/app-release.aab
+          generate_release_notes: true
+          fail_on_unmatched_files: true

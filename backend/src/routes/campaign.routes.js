@@ -1,0 +1,15 @@
+const r = require('express').Router();
+const validate = require('../middleware/validate');
+const { authRequired } = require('../middleware/auth');
+const { requireProfileCompletion } = require('../middleware/profileCompletion');
+const ctrl = require('../controllers/campaign.controller');
+const taskCtrl = require('../controllers/task.controller');
+
+r.use(authRequired, requireProfileCompletion);
+r.get('/tasks', taskCtrl.feed);
+r.post('/', ctrl.createValidators, validate, ctrl.create);
+r.get('/mine', ctrl.mine);
+r.post('/:id/pause', ctrl.pause);
+r.post('/:id/cancel', ctrl.cancel);
+
+module.exports = r;

@@ -1,0 +1,148 @@
+
+name: Build TikBoost APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+
+    env:
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      ADMOB_APP_ID: ${{ secrets.ADMOB_APP_ID }}
+      REQUIRE_RELEASE_SIGNING: ${{ startsWith(github.ref, 'refs/tags/v') && 'true' || 'false' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      # Decode and verify the Android upload key
+      - name: Decode and verify Google Play upload keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::error::ANDROID_KEYSTORE_BASE64 is missing"
+            exit 1
+          fi
+
+          if [ -z "$STORE_PASSWORD" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASSWORD" ]; then
+            echo "::error::One or more Android signing secrets are missing"
+            exit 1
+          fi
+
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/upload-keystore.jks"
+
+          test -s "$RUNNER_TEMP/upload-keystore.jks"
+
+          keytool -list \
+            -keystore "$RUNNER_TEMP/upload-keystore.jks" \
+            -storepass "$STORE_PASSWORD" \
+            -alias "$KEY_ALIAS" \
+            >/dev/null
+
+          keytool -certreq \
+            -keystore "$RUNNER_TEMP/upload-keystore.jks" \
+            -storepass "$STORE_PASSWORD" \
+            -alias "$KEY_ALIAS" \
+            -keypass "$KEY_PASSWORD" \
+            -file "$RUNNER_TEMP/upload-test.csr" \
+            >/dev/null
+
+          echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/upload-keystore.jks" >> "$GITHUB_ENV"
+
+          echo "Upload keystore and private key verified successfully."
+
+      # Flutter dependencies
+      - name: Install dependencies
+        working-directory: flutter-app
+        run: flutter pub get
+
+      # Static analysis
+      - name: Analyze Flutter
+        working-directory: flutter-app
+        run: flutter analyze --no-fatal-infos
+
+      # Tests
+      - name: Run tests
+        working-directory: flutter-app
+        run: flutter test
+
+      # Build signed APK
+      - name: Build APK
+        working-directory: flutter-app
+        run: |
+          flutter build apk --release \
+            --dart-define=API_BASE_URL=https://tikboost-api-v2.onrender.com/api \
+            --dart-define=SOCKET_URL=https://tikboost-api-v2.onrender.com
+
+      # Build signed Google Play AAB
+      - name: Build AAB (Google Play)
+        working-directory: flutter-app
+        run: |
+          flutter build appbundle --release \
+            --dart-define=API_BASE_URL=https://tikboost-api-v2.onrender.com/api \
+            --dart-define=SOCKET_URL=https://tikboost-api-v2.onrender.com
+
+      # Verify generated files and signing certificate
+      - name: Verify outputs
+        working-directory: flutter-app
+        run: |
+          set -euo pipefail
+
+          APK="build/app/outputs/flutter-apk/app-release.apk"
+          AAB="build/app/outputs/bundle/release/app-release.aab"
+
+          test -s "$APK"
+          test -s "$AAB"
+
+          echo "APK generated successfully."
+          echo "AAB generated successfully."
+
+          keytool -printcert -jarfile "$AAB" \
+            > "$RUNNER_TEMP/aab-cert.txt"
+
+          cat "$RUNNER_TEMP/aab-cert.txt"
+
+      # Upload APK artifact
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: tikboost-release-apk
+          path: flutter-app/build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+          retention-days: 14
+
+      # Upload AAB artifact
+      - name: Upload AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: tikboost-release-aab
+          path: flutter-app/build/app/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 14

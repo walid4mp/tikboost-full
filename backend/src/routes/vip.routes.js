@@ -1,0 +1,10 @@
+const r = require('express').Router();
+const { authRequired, requireRole } = require('../middleware/auth');
+const ctrl = require('../controllers/vip.controller');
+const googlePlay = require('../controllers/google-play.controller');
+r.get('/status', authRequired, ctrl.status);
+r.post('/subscribe', authRequired, ctrl.subscribe);
+r.post('/google-play/verify', authRequired, googlePlay.verifyVipSubscription);
+r.get('/admin', authRequired, requireRole('ADMIN','SUPER_ADMIN','MODERATOR'), ctrl.listAdmin);
+r.post('/admin/:id/action', authRequired, requireRole('ADMIN','SUPER_ADMIN'), ctrl.actionAdmin);
+module.exports = r;
