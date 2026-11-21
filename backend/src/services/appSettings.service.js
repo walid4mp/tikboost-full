@@ -36,7 +36,7 @@ const DEFAULT_SETTINGS = {
     nativeEnabled: true,
     bannerUnitId: 'ca-app-pub-5844737250635220/5064241834',
     interstitialUnitId: 'ca-app-pub-5844737250635220/1209803484',
-    rewardedUnitId: 'ca-app-pub-3940256099942544/5224354917',
+    rewardedUnitId: '', // No standard Rewarded unit; use Rewarded Interstitial units below.
     rewardedInterstitialUnitId: 'ca-app-pub-5844737250635220/3250090571',
     rewardedInterstitialUnitIdSecondary: 'ca-app-pub-5844737250635220/5688551653',
     appOpenUnitId: 'ca-app-pub-5844737250635220/9850710830',

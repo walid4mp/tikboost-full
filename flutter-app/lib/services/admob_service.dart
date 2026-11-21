@@ -12,19 +12,22 @@ class AdMobService {
   AdMobService._();
   static final AdMobService instance = AdMobService._();
 
-  static const String _fallbackBannerAdUnitId =
+  // Production AdMob units created for tikboost.wh. In Release builds these
+  // IDs are authoritative; remote admin config may toggle formats but cannot
+  // accidentally replace production inventory with Google's sample IDs.
+  static const String _productionBannerAdUnitId =
       'ca-app-pub-5844737250635220/5064241834';
-  static const String _fallbackNativeAdUnitId =
+  static const String _productionNativeAdUnitId =
       'ca-app-pub-5844737250635220/3998572171';
-  static const String _fallbackRewardedAdUnitId =
-      'ca-app-pub-3940256099942544/5224354917';
-  static const String _fallbackInterstitialAdUnitId =
+  // No standard Rewarded unit was created in AdMob. The app's reward flow
+  // uses the two real Rewarded Interstitial units below instead.
+  static const String _productionInterstitialAdUnitId =
       'ca-app-pub-5844737250635220/1209803484';
-  static const String _fallbackRewardedInterstitialAdUnitId =
+  static const String _productionRewardedInterstitialAdUnitId =
       'ca-app-pub-5844737250635220/3250090571';
-  static const String _fallbackRewardedInterstitialAdUnitIdSecondary =
+  static const String _productionRewardedInterstitialAdUnitIdSecondary =
       'ca-app-pub-5844737250635220/5688551653';
-  static const String _fallbackAppOpenAdUnitId =
+  static const String _productionAppOpenAdUnitId =
       'ca-app-pub-5844737250635220/9850710830';
 
   Map<String, dynamic> _adsConfig = const <String, dynamic>{};
@@ -54,17 +57,29 @@ class AdMobService {
     try { await ApiClient.instance.dio.post('/user/ad-events', data: {'type': type, 'event': event}); } catch (_) {}
   }
 
-  String get bannerAdUnitId => _stringValue('bannerUnitId', _fallbackBannerAdUnitId);
-  String get nativeAdUnitId => _stringValue('nativeUnitId', _fallbackNativeAdUnitId);
-  String get rewardedAdUnitId => _stringValue('rewardedUnitId', _fallbackRewardedAdUnitId);
-  String get interstitialAdUnitId =>
-      _stringValue('interstitialUnitId', _fallbackInterstitialAdUnitId);
-  String get rewardedInterstitialAdUnitId =>
-      _stringValue('rewardedInterstitialUnitId', _fallbackRewardedInterstitialAdUnitId);
-  String get rewardedInterstitialAdUnitIdSecondary =>
-      _stringValue('rewardedInterstitialUnitIdSecondary', _fallbackRewardedInterstitialAdUnitIdSecondary);
-  String get appOpenAdUnitId =>
-      _stringValue('appOpenUnitId', _fallbackAppOpenAdUnitId);
+  // Debug always uses Google's sample inventory. Release always uses the
+  // publisher's real units, even if an old server setting contains a test ID.
+  String get bannerAdUnitId => kDebugMode
+      ? 'ca-app-pub-3940256099942544/6300978111'
+      : _productionBannerAdUnitId;
+  String get nativeAdUnitId => kDebugMode
+      ? 'ca-app-pub-3940256099942544/2247696110'
+      : _productionNativeAdUnitId;
+  // No standard Rewarded unit was created. Reward flows use Rewarded
+  // Interstitial, so never load a standard Rewarded test unit in production.
+  String get rewardedAdUnitId => '';
+  String get interstitialAdUnitId => kDebugMode
+      ? 'ca-app-pub-3940256099942544/1033173712'
+      : _productionInterstitialAdUnitId;
+  String get rewardedInterstitialAdUnitId => kDebugMode
+      ? 'ca-app-pub-3940256099942544/5354046379'
+      : _productionRewardedInterstitialAdUnitId;
+  String get rewardedInterstitialAdUnitIdSecondary => kDebugMode
+      ? 'ca-app-pub-3940256099942544/5354046379'
+      : _productionRewardedInterstitialAdUnitIdSecondary;
+  String get appOpenAdUnitId => kDebugMode
+      ? 'ca-app-pub-3940256099942544/9257395921'
+      : _productionAppOpenAdUnitId;
 
   Future<InitializationStatus> initialize() async {
     await _loadRemoteConfig();
