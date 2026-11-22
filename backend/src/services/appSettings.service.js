@@ -20,7 +20,7 @@ const DEFAULT_SETTINGS = {
     primaryColor: '#FF3B5C',
     secondaryColor: '#2D7BFF',
     announcement: { enabled: false, level: 'info', text: '', textEn: '', textFr: '', url: '' },
-    maintenance: { enabled: false, message: '', messageEn: '', messageFr: '', title: 'التطبيق تحت الصيانة', expectedReturnAt: '', scope: 'all', allowUserIds: [], buttons: [{ label: 'تحميل النسخة الجديدة', url: '', enabled: true }, { label: 'زيارة موقعنا', url: '', enabled: true }, { label: 'التواصل مع الدعم', url: '', enabled: true }] },
+    maintenance: { enabled: false, message: '', messageEn: '', messageFr: '' },
     contactLinks: [
       { key: 'whatsapp', label: 'WhatsApp', value: '213779109990', enabled: true },
       { key: 'instagram', label: 'Instagram', value: 'https://www.instagram.com/wh.s.8', enabled: true },
@@ -29,16 +29,16 @@ const DEFAULT_SETTINGS = {
     ],
   },
   ads: {
-    adsEnabled: true,
     bannerEnabled: true,
     interstitialEnabled: true,
     rewardedEnabled: true,
     nativeEnabled: true,
     bannerUnitId: 'ca-app-pub-5844737250635220/5064241834',
     interstitialUnitId: 'ca-app-pub-5844737250635220/1209803484',
-    rewardedUnitId: '', // No standard Rewarded unit; use Rewarded Interstitial units below.
+    // These two units were created as Rewarded Interstitial, not standard Rewarded.
+    rewardedUnitId: 'ca-app-pub-5844737250635220/3250090571',
     rewardedInterstitialUnitId: 'ca-app-pub-5844737250635220/3250090571',
-    rewardedInterstitialUnitIdSecondary: 'ca-app-pub-5844737250635220/5688551653',
+    rewardedInterstitialAltUnitId: 'ca-app-pub-5844737250635220/5688551653',
     appOpenUnitId: 'ca-app-pub-5844737250635220/9850710830',
     nativeUnitId: 'ca-app-pub-5844737250635220/3998572171',
     autoInterstitialEnabled: true,
@@ -684,29 +684,25 @@ function normalizeSettings(input) {
       message: normalizeString(m.message, ''),
       messageEn: normalizeString(m.messageEn, ''),
       messageFr: normalizeString(m.messageFr, ''),
-      title: normalizeString(m.title, 'التطبيق تحت الصيانة'),
-      expectedReturnAt: normalizeString(m.expectedReturnAt, ''),
-      scope: String(m.scope || 'all') === 'selected' ? 'selected' : 'all',
-      allowUserIds: Array.isArray(m.allowUserIds) ? m.allowUserIds.map(String).slice(0, 500) : [],
-      buttons: Array.isArray(m.buttons) ? m.buttons.slice(0, 5).map((b) => ({ label: normalizeString(b?.label, 'فتح الرابط').slice(0, 60), url: normalizeUrl(b?.url, ''), enabled: normalizeBool(b?.enabled, true) })) : DEFAULT_SETTINGS.app.maintenance.buttons,
     };
   }
 
-  merged.ads.adsEnabled = normalizeBool(merged.ads.adsEnabled, DEFAULT_SETTINGS.ads.adsEnabled);
   merged.ads.bannerEnabled = normalizeBool(merged.ads.bannerEnabled, DEFAULT_SETTINGS.ads.bannerEnabled);
   merged.ads.interstitialEnabled = normalizeBool(merged.ads.interstitialEnabled, DEFAULT_SETTINGS.ads.interstitialEnabled);
   merged.ads.rewardedEnabled = normalizeBool(merged.ads.rewardedEnabled, DEFAULT_SETTINGS.ads.rewardedEnabled);
   merged.ads.nativeEnabled = normalizeBool(merged.ads.nativeEnabled, DEFAULT_SETTINGS.ads.nativeEnabled);
-  merged.ads.bannerUnitId = normalizeString(merged.ads.bannerUnitId, DEFAULT_SETTINGS.ads.bannerUnitId);
-  merged.ads.interstitialUnitId = normalizeString(merged.ads.interstitialUnitId, DEFAULT_SETTINGS.ads.interstitialUnitId);
-  merged.ads.rewardedUnitId = normalizeString(merged.ads.rewardedUnitId, DEFAULT_SETTINGS.ads.rewardedUnitId);
-  merged.ads.rewardedInterstitialUnitId = normalizeString(merged.ads.rewardedInterstitialUnitId, DEFAULT_SETTINGS.ads.rewardedInterstitialUnitId);
-  merged.ads.rewardedInterstitialUnitIdSecondary = normalizeString(merged.ads.rewardedInterstitialUnitIdSecondary, DEFAULT_SETTINGS.ads.rewardedInterstitialUnitIdSecondary);
-  merged.ads.appOpenUnitId = normalizeString(merged.ads.appOpenUnitId, DEFAULT_SETTINGS.ads.appOpenUnitId);
-  merged.ads.rewardedInterstitialEnabled = normalizeBool(merged.ads.rewardedInterstitialEnabled, true);
-  merged.ads.appOpenEnabled = normalizeBool(merged.ads.appOpenEnabled, true);
-  merged.ads.appOpenMinIntervalMinutes = clampInt(merged.ads.appOpenMinIntervalMinutes, 15, 1440, 60);
-  merged.ads.nativeUnitId = normalizeString(merged.ads.nativeUnitId, DEFAULT_SETTINGS.ads.nativeUnitId);
+  const normalizeAdUnit = (value, fallback, testId) => {
+    const candidate = normalizeString(value, fallback);
+    // Replace only Google's well-known sample IDs; preserve any valid publisher ID.
+    return candidate === testId ? fallback : candidate;
+  };
+  merged.ads.bannerUnitId = normalizeAdUnit(merged.ads.bannerUnitId, DEFAULT_SETTINGS.ads.bannerUnitId, 'ca-app-pub-3940256099942544/6300978111');
+  merged.ads.interstitialUnitId = normalizeAdUnit(merged.ads.interstitialUnitId, DEFAULT_SETTINGS.ads.interstitialUnitId, 'ca-app-pub-3940256099942544/1033173712');
+  merged.ads.rewardedUnitId = normalizeAdUnit(merged.ads.rewardedUnitId, DEFAULT_SETTINGS.ads.rewardedUnitId, 'ca-app-pub-3940256099942544/5224354917');
+  merged.ads.rewardedInterstitialUnitId = normalizeAdUnit(merged.ads.rewardedInterstitialUnitId, DEFAULT_SETTINGS.ads.rewardedInterstitialUnitId, '');
+  merged.ads.rewardedInterstitialAltUnitId = normalizeAdUnit(merged.ads.rewardedInterstitialAltUnitId, DEFAULT_SETTINGS.ads.rewardedInterstitialAltUnitId, '');
+  merged.ads.appOpenUnitId = normalizeAdUnit(merged.ads.appOpenUnitId, DEFAULT_SETTINGS.ads.appOpenUnitId, '');
+  merged.ads.nativeUnitId = normalizeAdUnit(merged.ads.nativeUnitId, DEFAULT_SETTINGS.ads.nativeUnitId, 'ca-app-pub-3940256099942544/2247696110');
   merged.ads.autoInterstitialEnabled = normalizeBool(merged.ads.autoInterstitialEnabled, DEFAULT_SETTINGS.ads.autoInterstitialEnabled);
   merged.ads.interstitialIntervalMinutes = clampInt(merged.ads.interstitialIntervalMinutes, 1, 1440, DEFAULT_SETTINGS.ads.interstitialIntervalMinutes);
   merged.ads.followMilestoneAdEnabled = normalizeBool(merged.ads.followMilestoneAdEnabled, DEFAULT_SETTINGS.ads.followMilestoneAdEnabled);

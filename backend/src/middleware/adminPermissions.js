@@ -2,14 +2,13 @@ const { AppError } = require('../utils/errors');
 
 const ALL_PERMISSIONS = [
   'dashboard', 'users', 'campaigns', 'purchases', 'reports', 'notifications',
-  'logs', 'ads', 'packages', 'offers', 'rewards', 'admins', 'developers', 'settings', 'maintenance', 'analytics'
+  'logs', 'ads', 'packages', 'offers', 'rewards', 'admins', 'settings', 'analytics'
 ];
 
 function hasAdminPermission(user, permission) {
   if (!user) return false;
   if (user.role === 'SUPER_ADMIN') return true;
-  if (!['ADMIN', 'MODERATOR', 'FINANCE', 'DEVELOPER'].includes(user.role)) return false;
-  if (user.role === 'DEVELOPER' && (!Array.isArray(user.adminPermissions) || user.adminPermissions.length === 0)) return false;
+  if (!['ADMIN', 'MODERATOR', 'FINANCE'].includes(user.role)) return false;
   if (!Array.isArray(user.adminPermissions) || user.adminPermissions.length === 0) return true;
   return user.adminPermissions.includes('*') || user.adminPermissions.includes(permission);
 }

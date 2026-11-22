@@ -1,9 +1,8 @@
 const r = require('express').Router();
 const { authRequired } = require('../middleware/auth');
-const maintenanceGuard = require('../middleware/maintenanceGuard');
 const ctrl = require('../controllers/rewards.controller');
 
-r.use(authRequired, maintenanceGuard);
+r.use(authRequired);
 r.get('/status', ctrl.status);
 r.get('/profile', ctrl.profile);
 r.post('/ad/start', ctrl.startDailyReward);

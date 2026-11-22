@@ -175,16 +175,10 @@ const grantPoints = asyncHandler(async (req, res) => {
 
 const updateRole = asyncHandler(async (req, res) => {
   const { role } = req.body;
-  const existingRole = await prisma.user.findUnique({ where: { id: req.params.id }, select: { role: true } });
-  if (!existingRole) throw new AppError('User not found', 404);
-  if ((role === 'DEVELOPER' || existingRole.role === 'DEVELOPER') && req.user.role !== 'SUPER_ADMIN') throw new AppError('Only Super Admin can manage developer accounts', 403);
-  if (!['USER', 'ADMIN', 'SUPER_ADMIN', 'MODERATOR', 'FINANCE', 'DEVELOPER'].includes(role)) {
+  if (!['USER', 'ADMIN', 'SUPER_ADMIN', 'MODERATOR', 'FINANCE'].includes(role)) {
     throw new AppError('Invalid role', 400);
   }
-  const roleData = { role };
-  if (role === 'DEVELOPER') roleData.adminPermissions = ALL_PERMISSIONS.filter((permission) => permission !== 'admins');
-  else if (req.user.role === 'SUPER_ADMIN') roleData.adminPermissions = null;
-  const user = await prisma.user.update({ where: { id: req.params.id }, data: roleData });
+  const user = await prisma.user.update({ where: { id: req.params.id }, data: { role } });
   await logAdmin(req.user, 'USER_ROLE', user.id, { role });
   res.json({ success: true, user: { ...user, password: undefined, points: user.points.toString() } });
 });
@@ -746,18 +740,18 @@ const listAdAnalytics = asyncHandler(async (req, res) => {
   const byUser = new Map();
   for (const r of rows) {
     // For Rewarded, count only COMPLETED as a watched ad. Other formats count VIEW.
-    if ((['REWARDED', 'REWARDED_INTERSTITIAL'].includes(r.type) && r.event !== 'COMPLETED') || (!['REWARDED', 'REWARDED_INTERSTITIAL'].includes(r.type) && r.event !== 'VIEW')) continue;
-    const item = byUser.get(r.userId) || { banner: 0, interstitial: 0, rewarded: 0, rewardedInterstitial: 0, appOpen: 0, native: 0, customBanner: 0, total: 0 };
+    if ((r.type === 'REWARDED' && r.event !== 'COMPLETED') || (r.type !== 'REWARDED' && r.event !== 'VIEW')) continue;
+    const item = byUser.get(r.userId) || { banner: 0, interstitial: 0, rewarded: 0, native: 0, customBanner: 0, total: 0 };
     const key = r.type.toLowerCase().replace('_', '');
-    const map = { banner: 'banner', interstitial: 'interstitial', rewarded: 'rewarded', rewardedinterstitial: 'rewardedInterstitial', appopen: 'appOpen', native: 'native', custombanner: 'customBanner' };
+    const map = { banner: 'banner', interstitial: 'interstitial', rewarded: 'rewarded', native: 'native', custombanner: 'customBanner' };
     const field = map[key];
     if (field) item[field] += Number(r._count._all);
     item.total += Number(r._count._all);
     byUser.set(r.userId, item);
   }
-  const items = users.map(u => ({ ...u, ...(byUser.get(u.id) || {banner:0,interstitial:0,rewarded:0,rewardedInterstitial:0,appOpen:0,native:0,customBanner:0,total:0}) }));
+  const items = users.map(u => ({ ...u, ...(byUser.get(u.id) || {banner:0,interstitial:0,rewarded:0,native:0,customBanner:0,total:0}) }));
   items.sort((a,b) => b.total - a.total);
-  const totals = items.reduce((a, x) => { a.banner+=x.banner; a.interstitial+=x.interstitial; a.rewarded+=x.rewarded; a.rewardedInterstitial+=x.rewardedInterstitial; a.appOpen+=x.appOpen; a.native+=x.native; a.customBanner+=x.customBanner; a.total+=x.total; return a; }, {banner:0,interstitial:0,rewarded:0,rewardedInterstitial:0,appOpen:0,native:0,customBanner:0,total:0});
+  const totals = items.reduce((a, x) => { a.banner+=x.banner; a.interstitial+=x.interstitial; a.rewarded+=x.rewarded; a.native+=x.native; a.customBanner+=x.customBanner; a.total+=x.total; return a; }, {banner:0,interstitial:0,rewarded:0,native:0,customBanner:0,total:0});
   totals.uniqueViewers = items.filter((x) => x.total > 0).length;
   res.json({ success: true, days, totals, items });
 });
@@ -765,7 +759,7 @@ const listAdAnalytics = asyncHandler(async (req, res) => {
 const recordAdEvent = asyncHandler(async (req, res) => {
   const type = String(req.body.type || '').toUpperCase();
   const event = String(req.body.event || 'VIEW').toUpperCase();
-  const allowed = ['BANNER','INTERSTITIAL','REWARDED','NATIVE','CUSTOM_BANNER','APP_OPEN','REWARDED_INTERSTITIAL'];
+  const allowed = ['BANNER','INTERSTITIAL','REWARDED','NATIVE','CUSTOM_BANNER'];
   if (!allowed.includes(type)) throw new AppError('Invalid ad type', 400);
   if (!['VIEW','COMPLETED'].includes(event)) throw new AppError('Invalid ad event', 400);
   await prisma.adImpression.create({ data: { userId: req.user.id, type, event } });
@@ -774,7 +768,7 @@ const recordAdEvent = asyncHandler(async (req, res) => {
 
 const listAdmins = asyncHandler(async (_req, res) => {
   const admins = await prisma.user.findMany({
-    where: { role: { in: ['ADMIN','SUPER_ADMIN','MODERATOR','FINANCE','DEVELOPER'] } },
+    where: { role: { in: ['ADMIN','SUPER_ADMIN','MODERATOR','FINANCE'] } },
     orderBy: { createdAt: 'asc' },
     select: { id:true, name:true, email:true, role:true, status:true, freezeUntil:true, adminPermissions:true, createdAt:true, lastLoginAt:true }
   });
@@ -787,10 +781,8 @@ const createAdmin = asyncHandler(async (req, res) => {
   const password = String(req.body.password || '');
   const role = String(req.body.role || 'ADMIN');
   if (!email || !name || password.length < 8) throw new AppError('Name, email and password (8+ chars) required', 400);
-  if (!['ADMIN','MODERATOR','FINANCE','DEVELOPER'].includes(role)) throw new AppError('Invalid admin role', 400);
-  const permissions = Array.isArray(req.body.permissions) && req.body.permissions.length
-    ? req.body.permissions.filter(p => ALL_PERMISSIONS.includes(p) || p === '*')
-    : (role === 'DEVELOPER' ? ALL_PERMISSIONS.filter((permission) => permission !== 'admins') : []);
+  if (!['ADMIN','MODERATOR','FINANCE'].includes(role)) throw new AppError('Invalid admin role', 400);
+  const permissions = Array.isArray(req.body.permissions) ? req.body.permissions.filter(p => ALL_PERMISSIONS.includes(p) || p === '*') : [];
   const exists = await prisma.user.findUnique({ where:{ email } });
   if (exists) throw new AppError('Email already exists', 409);
   const hash = await bcrypt.hash(password, env.BCRYPT_ROUNDS);
@@ -802,14 +794,11 @@ const createAdmin = asyncHandler(async (req, res) => {
 const updateAdmin = asyncHandler(async (req, res) => {
   const id = req.params.id;
   const target = await prisma.user.findUnique({ where:{id} });
-  if (!target || !['ADMIN','SUPER_ADMIN','MODERATOR','FINANCE','DEVELOPER'].includes(target.role)) throw new AppError('Admin not found',404);
+  if (!target || !['ADMIN','SUPER_ADMIN','MODERATOR','FINANCE'].includes(target.role)) throw new AppError('Admin not found',404);
   if (target.email === 'admin1@tikboost.app') throw new AppError('Primary super admin is protected',403);
   const data = {};
   if (req.body.name !== undefined) data.name = String(req.body.name).trim();
-  if (req.body.role && ['ADMIN','MODERATOR','FINANCE','DEVELOPER'].includes(req.body.role)) {
-    if (req.body.role === 'DEVELOPER' && req.user.role !== 'SUPER_ADMIN') throw new AppError('Only Super Admin can appoint developers',403);
-    data.role = req.body.role;
-  }
+  if (req.body.role && ['ADMIN','MODERATOR','FINANCE'].includes(req.body.role)) data.role = req.body.role;
   if (Array.isArray(req.body.permissions)) data.adminPermissions = req.body.permissions.filter(p => ALL_PERMISSIONS.includes(p) || p === '*');
   if (req.body.status === 'ACTIVE') { data.status='ACTIVE'; data.freezeUntil=null; }
   if (req.body.status === 'FROZEN') { data.status='FROZEN'; data.freezeUntil=new Date(Date.now()+env.FREEZE_DURATION_MIN*60000); }
@@ -821,7 +810,7 @@ const updateAdmin = asyncHandler(async (req, res) => {
 
 const deleteAdmin = asyncHandler(async (req,res) => {
   const target = await prisma.user.findUnique({ where:{id:req.params.id}, select:{id:true,email:true,role:true} });
-  if (!target || !['ADMIN','SUPER_ADMIN','MODERATOR','FINANCE','DEVELOPER'].includes(target.role)) throw new AppError('Admin not found',404);
+  if (!target || !['ADMIN','SUPER_ADMIN','MODERATOR','FINANCE'].includes(target.role)) throw new AppError('Admin not found',404);
   if (target.email === 'admin1@tikboost.app' || target.id === req.user.id) throw new AppError('Protected admin',403);
   await prisma.user.delete({ where:{id:target.id} });
   await logAdmin(req.user,'ADMIN_DELETE',target.id,{email:target.email});

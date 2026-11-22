@@ -18,11 +18,11 @@ function userMatchesOffer(o, user, counters = {}) {
   const audience = String(o.audience || 'ALL').toUpperCase();
   if (o.targetUserId && o.targetUserId !== user.id) return false;
   if (audience === 'SELECTED_USER' && o.targetUserId !== user.id) return false;
-  if (audience === 'VIP_PRO' && !(user.role === 'DEVELOPER' || (user.vipProUntil && user.vipProUntil > new Date()))) return false;
+  if (audience === 'VIP_PRO' && !(user.vipProUntil && user.vipProUntil > new Date())) return false;
   if (audience === 'NEW_USERS' && (Date.now() - new Date(user.createdAt).getTime()) > 7 * 86400000) return false;
   if (audience === 'ACTIVE_TASKERS' && Number(counters.tasksCompleted || 0) < Math.max(1, Number(o.minTasks || 1))) return false;
   if (audience === 'INACTIVE' && (Date.now() - new Date(user.lastLoginAt || user.createdAt).getTime()) < 3 * 86400000) return false;
-  if (o.targetVip && !(user.role === 'DEVELOPER' || (user.vipProUntil && user.vipProUntil > new Date()))) return false;
+  if (o.targetVip && !(user.vipProUntil && user.vipProUntil > new Date())) return false;
   const targetGender = String(o.targetGender || 'ALL').toUpperCase();
   if (targetGender !== 'ALL' && targetGender !== String(user.gender || '').toUpperCase()) return false;
   const targetCountry = String(o.targetCountry || 'WORLDWIDE').toUpperCase();

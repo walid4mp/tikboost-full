@@ -43,7 +43,7 @@ class MainShell extends ConsumerWidget {
     final idx = _currentIndex(context);
     final user = ref.watch(authProvider).state.user;
     ref.watch(clientConfigProvider);
-    final isStaff = user != null && ['ADMIN', 'SUPER_ADMIN', 'MODERATOR', 'FINANCE', 'DEVELOPER'].contains(user.role);
+    final isStaff = user != null && ['ADMIN', 'SUPER_ADMIN', 'MODERATOR', 'FINANCE'].contains(user.role);
     if (AppConfig.maintenance['enabled'] == true && !isStaff) {
       return const _MaintenanceView();
     }
@@ -135,36 +135,20 @@ class _MaintenanceView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final maintenance = AppConfig.maintenance;
-    var msg = _localized(maintenance, 'message');
+    var msg = _localized(AppConfig.maintenance, 'message');
     if (msg.isEmpty) msg = 'التطبيق قيد الصيانة حالياً، سنعود قريباً.';
-    final title = _localized(maintenance, 'title').isEmpty ? 'التطبيق تحت الصيانة' : _localized(maintenance, 'title');
-    final buttons = (maintenance['buttons'] is List ? maintenance['buttons'] as List : const [])
-        .whereType<Map>().where((b) => b['enabled'] != false && (b['url'] ?? '').toString().trim().isNotEmpty).toList();
     return Scaffold(
       body: Center(
-        child: SingleChildScrollView(child: Padding(
+        child: Padding(
           padding: const EdgeInsets.all(28),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             const Icon(Icons.build_circle_rounded, size: 84, color: AppColors.warning),
             const SizedBox(height: 18),
-            Text(title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
+            Text('صيانة', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
             const SizedBox(height: 10),
             Text(msg, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textMuted, height: 1.6)),
-            if ((maintenance['expectedReturnAt'] ?? '').toString().isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Text('العودة المتوقعة: ${maintenance['expectedReturnAt']}', style: const TextStyle(color: AppColors.textMuted)),
-            ],
-            const SizedBox(height: 22),
-            for (final button in buttons) ...[
-              SizedBox(width: double.infinity, child: OutlinedButton.icon(
-                onPressed: () async { final uri = Uri.tryParse(button['url'].toString()); if (uri != null && (uri.scheme == 'https' || uri.scheme == 'http')) await launchUrl(uri, mode: LaunchMode.externalApplication); },
-                icon: const Icon(Icons.open_in_new_rounded), label: Text(button['label'].toString()),
-              )),
-              const SizedBox(height: 8),
-            ],
           ]),
-        )),
+        ),
       ),
     );
   }

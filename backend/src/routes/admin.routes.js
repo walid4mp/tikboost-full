@@ -7,7 +7,7 @@ const offerCtrl = require('../controllers/offer.controller');
 const purchaseCtrl = require('../controllers/purchase.controller');
 const tools = require('../controllers/adminTools.controller');
 
-r.use(authRequired, requireRole('MODERATOR', 'FINANCE', 'DEVELOPER', 'ADMIN', 'SUPER_ADMIN'));
+r.use(authRequired, requireRole('MODERATOR', 'FINANCE', 'ADMIN', 'SUPER_ADMIN'));
 r.use((req, _res, next) => {
   const p = req.path;
   const map = p.startsWith('/users') ? 'users' : p.startsWith('/campaigns') ? 'campaigns' : p.startsWith('/purchases') ? 'purchases' : p.startsWith('/reports') ? 'reports' : p.startsWith('/notifications') || p.startsWith('/push') ? 'notifications' : p.startsWith('/system') ? 'dashboard' : p.startsWith('/commands') ? 'settings' : p.startsWith('/logs') ? 'logs' : p.startsWith('/settings/ads') ? 'ads' : p.startsWith('/settings/payments') ? 'purchases' : p.startsWith('/settings/rewards') ? 'rewards' : p.startsWith('/packages') ? 'packages' : p.startsWith('/offers') ? 'offers' : p.startsWith('/wheel') ? 'rewards' : p.startsWith('/stats') ? 'dashboard' : p.startsWith('/analytics') ? 'analytics' : p.startsWith('/admins') ? 'admins' : p.startsWith('/settings') ? 'settings' : p.startsWith('/vip') ? 'rewards' : p.startsWith('/password-reset-requests') ? 'users' : 'dashboard';

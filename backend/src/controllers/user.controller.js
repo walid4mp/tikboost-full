@@ -121,9 +121,7 @@ const getAdConfig = asyncHandler(async (req, res) => {
   const settings = await getSettings();
   const excluded = new Set((settings.ads?.excludedUserIds || []).map(String));
   const ads = settings.ads || {};
-  const isDeveloper = req.user.role === 'DEVELOPER';
-  const isVip = Boolean(req.user.vipProUntil && new Date(req.user.vipProUntil) > new Date());
-  const suppressed = isDeveloper || isVip || excluded.has(String(req.user.id));
+  const suppressed = excluded.has(String(req.user.id));
   res.json({
     success: true,
     ads: {

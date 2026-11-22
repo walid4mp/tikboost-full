@@ -7,10 +7,10 @@ const { notify, notifyAdmins } = require('../services/notifications.service');
 const status = asyncHandler(async (req, res) => {
   const settings = await getSettings();
   const now = new Date();
-  const active = req.user.role === 'DEVELOPER' || (req.user.vipProUntil && req.user.vipProUntil > now);
+  const active = req.user.vipProUntil && req.user.vipProUntil > now;
   const latest = await prisma.vipSubscription.findFirst({ where: { userId: req.user.id }, orderBy: { createdAt: 'desc' } });
   const plans = (settings.vipPro?.plans || []).filter(p => p.enabled !== false).map(p => ({ ...p, price: p.priceCents / 100 }));
-  res.json({ success: true, vipPro: { enabled: settings.vipPro?.enabled !== false, active: Boolean(active), until: req.user.role === 'DEVELOPER' ? null : (active ? req.user.vipProUntil : null), developerAccess: req.user.role === 'DEVELOPER', priceCents: settings.vipPro?.monthlyPriceCents ?? 1000, currency: settings.vipPro?.currency ?? 'USD', latest, plans } });
+  res.json({ success: true, vipPro: { enabled: settings.vipPro?.enabled !== false, active: Boolean(active), until: active ? req.user.vipProUntil : null, priceCents: settings.vipPro?.monthlyPriceCents ?? 1000, currency: settings.vipPro?.currency ?? 'USD', latest, plans } });
 });
 
 const subscribe = asyncHandler(async (req, res) => {
@@ -44,12 +44,7 @@ const subscribe = asyncHandler(async (req, res) => {
 });
 
 const listAdmin = asyncHandler(async (_req, res) => {
-  const [rows, total, active, pending, expired, rejected, developerCount] = await Promise.all([
-    prisma.vipSubscription.findMany({ orderBy: { createdAt: 'desc' }, take: 250, include: { user: { select: { id: true, name: true, email: true, vipProUntil: true, role: true } } } }),
-    prisma.vipSubscription.count(), prisma.vipSubscription.count({ where: { status: 'ACTIVE', expiresAt: { gt: new Date() } } }),
-    prisma.vipSubscription.count({ where: { status: 'PENDING' } }), prisma.vipSubscription.count({ where: { OR: [{ status: 'EXPIRED' }, { status: 'ACTIVE', expiresAt: { lte: new Date() } }] } }),
-    prisma.vipSubscription.count({ where: { status: 'REJECTED' } }), prisma.user.count({ where: { role: 'DEVELOPER' } })
-  ]);
+  const rows = await prisma.vipSubscription.findMany({ orderBy: { createdAt: 'desc' }, take: 100, include: { user: { select: { id: true, name: true, email: true, vipProUntil: true } } } });
   res.json({ success: true, items: rows.map((row) => {
     const { notes: _notes, ...safeRow } = row;
     return {
@@ -57,7 +52,7 @@ const listAdmin = asyncHandler(async (_req, res) => {
     transactionId: row.reference || null,
     hasReceipt: (() => { try { return !!(row.notes && JSON.parse(row.notes).receiptImageData); } catch (_) { return false; } })(),
   };
-  }), stats: { total, active, pending, expired, rejected, developers: developerCount } });
+  }) });
 });
 
 const receiptAdmin = asyncHandler(async (req, res) => {
@@ -103,9 +98,8 @@ const grantAdmin = asyncHandler(async (req, res) => {
   const now = new Date();
   const start = user.vipProUntil && user.vipProUntil > now ? user.vipProUntil : now;
   const expires = new Date(start.getTime() + durationDays * 86400000);
-  const sub = await prisma.vipSubscription.create({ data: { userId, priceCents, currency: String(req.body?.currency || 'USD'), method: 'admin_grant', status: 'ACTIVE', startsAt: start, expiresAt: expires, reference: req.body?.note ? String(req.body.note).slice(0,255) : 'Admin grant', notes: JSON.stringify({ grantedBy: req.user.id, source: req.user.role === 'DEVELOPER' ? 'developer' : 'admin', note: String(req.body?.note || '').slice(0,255) }) } });
+  const sub = await prisma.vipSubscription.create({ data: { userId, priceCents, currency: String(req.body?.currency || 'USD'), method: 'admin_grant', status: 'ACTIVE', startsAt: start, expiresAt: expires, reference: req.body?.note ? String(req.body.note).slice(0,255) : 'Admin grant' } });
   await prisma.user.update({ where: { id: userId }, data: { vipProUntil: expires } });
-  await prisma.adminLog.create({ data: { actorId: req.user.id, action: 'VIP_GRANT', target: userId, details: { subscriptionId: sub.id, durationDays, expiresAt: expires.toISOString(), source: req.user.role === 'DEVELOPER' ? 'developer' : 'admin', note: String(req.body?.note || '').slice(0, 255) } } });
   await notify(userId, '👑 تم منحك VIP PRO', `تم تفعيل VIP PRO لمدة ${durationDays} يوماً حتى ${expires.toISOString().slice(0,10)}.`, 'success', { event:'VIP_GRANTED', durationDays });
   res.status(201).json({ success:true, item:sub, user, expiresAt:expires });
 });

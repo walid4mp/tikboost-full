@@ -54,8 +54,8 @@ if (releaseStoreFilePath) {
 def hasReleaseSigning = releaseStoreFile != null && releaseStoreFile.exists() &&
         releaseStorePassword && releaseKeyAlias && releaseKeyPassword
 
-// AdMob application id. Release uses the TikBoost AdMob app id; debug builds
-// override the manifest placeholder with Google's official test app id.
+// AdMob application id: production uses the publisher's real app id.
+// Debug builds override this with Google's test app id below.
 def admobAppId = project.findProperty('ADMOB_APP_ID') ?: System.getenv('ADMOB_APP_ID') ?: 'ca-app-pub-5844737250635220~8757121017'
 
 android {
@@ -99,6 +99,7 @@ android {
             manifestPlaceholders = [applicationName: "android.app.Application", admobAppId: 'ca-app-pub-3940256099942544~3347511713']
         }
         release {
+            manifestPlaceholders = [applicationName: "android.app.Application", admobAppId: admobAppId]
             // Play Store builds must be signed with the upload key. When no key is
             // configured we fall back to the debug key so local/CI test builds still
             // work, but such a build is REJECTED by Google Play (see the guard below).

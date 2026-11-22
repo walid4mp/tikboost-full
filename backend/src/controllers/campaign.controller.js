@@ -60,7 +60,7 @@ const create = asyncHandler(async (req, res) => {
   let targetGender = normalizeTargetGender(req.body.targetGender) || 'ALL';
   let targetCountry = normalizeTargetCountry(req.body.targetCountry);
   const campaignSettings = await getSettings();
-  const vipUntilForTargeting = req.user.role === 'DEVELOPER' ? new Date('9999-12-31T00:00:00.000Z') : (req.user.vipProUntil ? new Date(req.user.vipProUntil) : null);
+  const vipUntilForTargeting = req.user.vipProUntil ? new Date(req.user.vipProUntil) : null;
   const hasActiveVip = Boolean(vipUntilForTargeting && vipUntilForTargeting > new Date() && campaignSettings.vipPro?.enabled !== false);
   // Enforce VIP audience targeting on the server; client UI is not a security boundary.
   if (!hasActiveVip && (targetGender !== 'ALL' || (targetCountry && targetCountry !== 'WORLDWIDE'))) {
@@ -111,7 +111,7 @@ const create = asyncHandler(async (req, res) => {
   }
 
   const totalCost = BigInt(normalizedQuantity) * perCost;
-  const vipUntil = req.user.role === 'DEVELOPER' ? new Date('9999-12-31T00:00:00.000Z') : (req.user.vipProUntil ? new Date(req.user.vipProUntil) : null);
+  const vipUntil = req.user.vipProUntil ? new Date(req.user.vipProUntil) : null;
   const isVip = vipUntil && vipUntil > new Date() && settings.vipPro?.enabled !== false;
   const vipBonusPoints = isVip ? BigInt(Math.max(0, Number(settings.vipPro?.bonusPerTask || 0))) : 0n;
   const balance = BigInt(req.user.points);

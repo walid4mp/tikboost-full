@@ -114,7 +114,7 @@
     <section class="page hidden" data-page="users">
       <div class="toolbar">
         <input id="userQuery" placeholder="ابحث بالاسم / البريد / ID / كود الإحالة" />
-        <select id="userRole"><option value="">كل الأدوار</option><option>USER</option><option>MODERATOR</option><option>FINANCE</option><option>DEVELOPER</option><option>ADMIN</option><option>SUPER_ADMIN</option></select>
+        <select id="userRole"><option value="">كل الأدوار</option><option>USER</option><option>MODERATOR</option><option>FINANCE</option><option>ADMIN</option><option>SUPER_ADMIN</option></select>
         <select id="userStatus"><option value="">كل الحالات</option><option>ACTIVE</option><option>FROZEN</option><option>BANNED</option></select>
         <button id="usersRefresh" class="primary">تحديث</button>
         <button id="usersExport" type="button">⬇️ تصدير CSV</button>
@@ -298,29 +298,18 @@
       <div class="grid-2">
         <div class="card form-card">
           <h3>إعدادات الإعلانات</h3>
-          <label><input type="checkbox" id="adsAllEnabled" /> تشغيل جميع إعلانات التطبيق</label>
           <label><input type="checkbox" id="adsBannerEnabled" /> تفعيل Banner Ads</label>
           <label><input type="checkbox" id="adsInterstitialEnabled" /> تفعيل Interstitial Ads</label>
           <label><input type="checkbox" id="adsRewardedEnabled" /> تفعيل Reward Ads</label>
           <label><input type="checkbox" id="adsNativeEnabled" /> تفعيل Native Ads</label>
-          <label><input type="checkbox" id="adsRewardedInterstitialEnabled" /> تفعيل Rewarded Interstitial</label>
-          <label><input type="checkbox" id="adsAppOpenEnabled" /> تفعيل App Open</label>
-          <label>الحد الأدنى بين إعلانات App Open (بالدقائق)</label><input id="adsAppOpenInterval" type="number" min="15" max="1440" value="60" />
           <label>Banner Unit ID</label>
           <input id="adsBannerUnitId" placeholder="ca-app-pub-..." />
           <label>Interstitial Unit ID</label>
           <input id="adsInterstitialUnitId" placeholder="ca-app-pub-..." />
-          <label>Standard Rewarded Unit ID (غير مُنشأ في AdMob)</label>
-          <input id="adsRewardedUnitId" placeholder="غير مستخدم — استخدم Rewarded Interstitial" disabled />
-          <small>المكافآت في التطبيق تستخدم وحدتي Rewarded Interstitial الحقيقيتين أدناه. لا تضع معرّفاً تجريبياً هنا.</small>
+          <label>Rewarded Unit ID</label>
+          <input id="adsRewardedUnitId" placeholder="ca-app-pub-..." />
           <label>Native Unit ID</label>
           <input id="adsNativeUnitId" placeholder="ca-app-pub-..." />
-          <label>Rewarded Interstitial Unit ID 1</label>
-          <input id="adsRewardedInterstitialUnitId" placeholder="ca-app-pub-..." />
-          <label>Rewarded Interstitial Unit ID 2</label>
-          <input id="adsRewardedInterstitialUnitIdSecondary" placeholder="ca-app-pub-..." />
-          <label>App Open Unit ID</label>
-          <input id="adsAppOpenUnitId" placeholder="ca-app-pub-..." />
           <hr style="border-color:var(--border);margin:14px 0" />
           <label><input type="checkbox" id="adsAutoInterstitialEnabled" /> تفعيل الإعلان التلقائي</label>
           <label>الفاصل بين إعلانات Interstitial (بالدقائق)</label>
@@ -384,17 +373,6 @@
           <input id="appDownloadUrl" placeholder="https://play.google.com/store/apps/..." />
           <p style="color:var(--muted);font-size:12px">سيتم استخدامه مع رابط الإحالة الخاص بكل مستخدم.</p>
           <button id="appDownloadSave" class="primary">حفظ رابط التحميل</button>
-        </div>
-        <div class="card form-card">
-          <h3>🛠️ وضع الصيانة وروابط الإجراءات</h3>
-          <label><input id="maintenanceEnabled" type="checkbox" /> تفعيل وضع الصيانة</label>
-          <label>عنوان شاشة الصيانة</label><input id="maintenanceTitle" value="التطبيق تحت الصيانة" />
-          <label>رسالة الصيانة</label><textarea id="maintenanceMessage" rows="3" placeholder="نعود قريباً مع تحسينات جديدة"></textarea>
-          <label>موعد العودة المتوقع (اختياري)</label><input id="maintenanceReturnAt" placeholder="مثلاً: اليوم 22:00" />
-          <label>رابط زر تحميل النسخة الجديدة</label><input id="maintenanceDownloadUrl" type="url" placeholder="https://..." />
-          <label>رابط زر زيارة الموقع</label><input id="maintenanceWebsiteUrl" type="url" placeholder="https://..." />
-          <label>رابط زر التواصل مع الدعم</label><input id="maintenanceSupportUrl" type="url" placeholder="https://..." />
-          <button id="maintenanceSave" class="primary">حفظ إعدادات الصيانة</button>
         </div>
       </div>
       <div class="grid-2" style="margin-top:16px">
@@ -629,15 +607,8 @@
           <button id="vipPlansSave" class="primary">حفظ باقات VIP</button>
         </div>
       </div>
-      <div class="cards" style="margin-top:16px">
-        <div class="kpi"><div class="kpi-label">كل الاشتراكات</div><div class="kpi-value" id="vipStatTotal">—</div></div>
-        <div class="kpi accent"><div class="kpi-label">نشطة</div><div class="kpi-value" id="vipStatActive">—</div></div>
-        <div class="kpi"><div class="kpi-label">بانتظار المراجعة</div><div class="kpi-value" id="vipStatPending">—</div></div>
-        <div class="kpi"><div class="kpi-label">منتهية</div><div class="kpi-value" id="vipStatExpired">—</div></div>
-        <div class="kpi"><div class="kpi-label">حسابات المطورين</div><div class="kpi-value" id="vipStatDevelopers">—</div></div>
-      </div>
       <div class="card table-wrap" style="margin-top:16px"><div class="toolbar"><h3 style="margin:0">طلبات VIP PRO</h3><button id="vipRefresh" class="primary">تحديث</button></div>
-      <table id="vipTable"><thead><tr><th>المستخدم</th><th>الخطة</th><th>السعر</th><th>المصدر</th><th>بداية الاشتراك</th><th>تاريخ الانتهاء</th><th>الحالة</th><th>تاريخ الطلب</th><th>إجراء</th></tr></thead><tbody></tbody></table></div>
+      <table id="vipTable"><thead><tr><th>المستخدم</th><th>السعر</th><th>الطريقة</th><th>رقم المعاملة / الإثبات</th><th>الحالة</th><th>تاريخ الطلب</th><th>إجراء</th></tr></thead><tbody></tbody></table></div>
     </section>
 
     <section class="page hidden" data-page="admins">
@@ -647,7 +618,7 @@
           <div><label>الاسم</label><input id="adminName" /></div>
           <div><label>البريد</label><input id="adminEmail" type="email" /></div>
           <div><label>كلمة المرور</label><input id="adminPassword" type="password" /></div>
-          <div><label>الدور</label><select id="adminRole"><option>ADMIN</option><option>MODERATOR</option><option>FINANCE</option><option>DEVELOPER</option></select></div>
+          <div><label>الدور</label><select id="adminRole"><option>ADMIN</option><option>MODERATOR</option><option>FINANCE</option></select></div>
         </div>
         <label>الصلاحيات</label>
         <select id="adminPermissions" multiple size="8" style="width:100%">

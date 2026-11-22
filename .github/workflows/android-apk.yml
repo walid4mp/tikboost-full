@@ -96,7 +96,7 @@ jobs:
       ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
       ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
       ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-      ADMOB_APP_ID: ca-app-pub-5844737250635220~8757121017
+      ADMOB_APP_ID: ${{ secrets.ADMOB_APP_ID }}
       # Tagged releases (v*) must be signed with the real upload key.
       REQUIRE_RELEASE_SIGNING: ${{ startsWith(github.ref, 'refs/tags/v') && 'true' || 'false' }}
 

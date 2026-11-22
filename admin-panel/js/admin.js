@@ -260,7 +260,7 @@ async function fetchUsersPage() {
     const tbody = document.querySelector('#usersTable tbody');
     tbody.innerHTML = '';
     data.items.forEach(u => {
-      const roleBadge = { USER:'gray', MODERATOR:'blue', FINANCE:'blue', DEVELOPER:'warn', ADMIN:'warn', SUPER_ADMIN:'red' }[u.role] || 'gray';
+      const roleBadge = { USER:'gray', MODERATOR:'blue', FINANCE:'blue', ADMIN:'warn', SUPER_ADMIN:'red' }[u.role] || 'gray';
       const stBadge   = { ACTIVE:'green', FROZEN:'warn', BANNED:'red' }[u.status] || 'gray';
       tbody.insertAdjacentHTML('beforeend', `
         <tr>
@@ -853,7 +853,7 @@ async function loadAdAnalytics() {
     tbody.innerHTML = (data.items || []).map(u => `<tr>
       <td>${esc(u.name||'')}<br><small>${esc(u.email||'')}</small></td><td>${esc(u.role||'USER')}</td>
       <td>${esc(u.gender||'-')}</td><td>${esc(u.countryCode||'-')}</td><td>${u.banner||0}</td><td>${u.interstitial||0}</td><td>${u.rewarded||0}</td><td>${u.native||0}</td><td>${u.customBanner||0}</td><td><b>${u.total||0}</b></td>
-    </tr>`).join('') || '<tr><td colspan="10">لا توجد مشاهدات</td></tr>';
+    </tr>`).join('') || '<tr><td colspan="9">لا توجد مشاهدات</td></tr>';
   } catch(e) { toast(e.message,'err'); }
 }
 
@@ -928,21 +928,14 @@ async function loadRewardsAdmin() {
     const campaignRewards = pricingData.campaignRewards || {};
     const campaignRules = pricingData.campaignRules || {};
 
-    document.getElementById('adsAllEnabled').checked = ads.adsEnabled !== false;
     document.getElementById('adsBannerEnabled').checked = !!ads.bannerEnabled;
     document.getElementById('adsInterstitialEnabled').checked = !!ads.interstitialEnabled;
     document.getElementById('adsRewardedEnabled').checked = !!ads.rewardedEnabled;
     document.getElementById('adsNativeEnabled').checked = !!ads.nativeEnabled;
-    document.getElementById('adsRewardedInterstitialEnabled').checked = ads.rewardedInterstitialEnabled !== false;
-    document.getElementById('adsAppOpenEnabled').checked = ads.appOpenEnabled !== false;
-    document.getElementById('adsAppOpenInterval').value = ads.appOpenMinIntervalMinutes ?? 60;
     document.getElementById('adsBannerUnitId').value = ads.bannerUnitId || '';
     document.getElementById('adsInterstitialUnitId').value = ads.interstitialUnitId || '';
     document.getElementById('adsRewardedUnitId').value = ads.rewardedUnitId || '';
     document.getElementById('adsNativeUnitId').value = ads.nativeUnitId || '';
-    document.getElementById('adsRewardedInterstitialUnitId').value = ads.rewardedInterstitialUnitId || '';
-    document.getElementById('adsRewardedInterstitialUnitIdSecondary').value = ads.rewardedInterstitialUnitIdSecondary || '';
-    document.getElementById('adsAppOpenUnitId').value = ads.appOpenUnitId || '';
     document.getElementById('adsAutoInterstitialEnabled').checked = ads.autoInterstitialEnabled !== false;
     document.getElementById('adsInterstitialIntervalMinutes').value = ads.interstitialIntervalMinutes ?? 20;
     document.getElementById('adsFollowMilestoneEnabled').checked = ads.followMilestoneAdEnabled !== false;
@@ -969,15 +962,6 @@ async function loadRewardsAdmin() {
     document.getElementById('referralBonusPoints').value = rewards.referralBonusPoints ?? 2500;
     document.getElementById('referralNewUserBonusPoints').value = rewards.referralNewUserBonusPoints ?? 0;
     document.getElementById('appDownloadUrl').value = app.downloadUrl || '';
-    const maintenance = app.maintenance || {};
-    document.getElementById('maintenanceEnabled').checked = maintenance.enabled === true;
-    document.getElementById('maintenanceTitle').value = maintenance.title || 'التطبيق تحت الصيانة';
-    document.getElementById('maintenanceMessage').value = maintenance.message || '';
-    document.getElementById('maintenanceReturnAt').value = maintenance.expectedReturnAt || '';
-    const maintenanceButtons = Array.isArray(maintenance.buttons) ? maintenance.buttons : [];
-    document.getElementById('maintenanceDownloadUrl').value = maintenanceButtons[0]?.url || '';
-    document.getElementById('maintenanceWebsiteUrl').value = maintenanceButtons[1]?.url || '';
-    document.getElementById('maintenanceSupportUrl').value = maintenanceButtons[2]?.url || '';
     document.getElementById('priceFollowers').value = campaignPricing.FOLLOWERS ?? 100;
     document.getElementById('priceLikes').value = campaignPricing.LIKES ?? 20;
     document.getElementById('priceViews').value = campaignPricing.VIEWS ?? 5;
@@ -1060,21 +1044,14 @@ async function saveAdSettings() {
     await api('/admin/settings/ads', {
       method: 'PUT',
       body: {
-        adsEnabled: document.getElementById('adsAllEnabled').checked,
         bannerEnabled: document.getElementById('adsBannerEnabled').checked,
         interstitialEnabled: document.getElementById('adsInterstitialEnabled').checked,
         rewardedEnabled: document.getElementById('adsRewardedEnabled').checked,
         nativeEnabled: document.getElementById('adsNativeEnabled').checked,
-        rewardedInterstitialEnabled: document.getElementById('adsRewardedInterstitialEnabled').checked,
-        appOpenEnabled: document.getElementById('adsAppOpenEnabled').checked,
-        appOpenMinIntervalMinutes: Number(document.getElementById('adsAppOpenInterval').value || 60),
         bannerUnitId: document.getElementById('adsBannerUnitId').value.trim(),
         interstitialUnitId: document.getElementById('adsInterstitialUnitId').value.trim(),
         rewardedUnitId: document.getElementById('adsRewardedUnitId').value.trim(),
         nativeUnitId: document.getElementById('adsNativeUnitId').value.trim(),
-        rewardedInterstitialUnitId: document.getElementById('adsRewardedInterstitialUnitId').value.trim(),
-        rewardedInterstitialUnitIdSecondary: document.getElementById('adsRewardedInterstitialUnitIdSecondary').value.trim(),
-        appOpenUnitId: document.getElementById('adsAppOpenUnitId').value.trim(),
         autoInterstitialEnabled: document.getElementById('adsAutoInterstitialEnabled').checked,
         interstitialIntervalMinutes: Number(document.getElementById('adsInterstitialIntervalMinutes').value || 20),
         followMilestoneAdEnabled: document.getElementById('adsFollowMilestoneEnabled').checked,
@@ -1176,11 +1153,9 @@ async function loadVip() {
       api('/admin/settings/rewards'),
       api('/admin/users?limit=200&page=1'),
     ]);
-    const stats = data.stats || {};
-    for (const [key,id] of [['total','vipStatTotal'],['active','vipStatActive'],['pending','vipStatPending'],['expired','vipStatExpired'],['developers','vipStatDevelopers']]) { const el=document.getElementById(id); if(el) el.textContent=stats[key] ?? 0; }
     const tbody=document.querySelector('#vipTable tbody');
     tbody.innerHTML='';
-    (data.items||[]).forEach(x=>tbody.insertAdjacentHTML('beforeend',`<tr><td>${esc(x.user?.name||'-')}<br><small>${esc(x.user?.email||'')}</small></td><td>${esc(x.planKey||'VIP')}</td><td>$${(Number(x.priceCents||0)/100).toFixed(2)}</td><td>${esc(x.method||'-')}<br><small>${esc(x.transactionId||'')}</small>${x.hasReceipt?`<br><button class="act vip-receipt" data-id="${x.id}">عرض الإثبات</button>`:''}</td><td>${x.startsAt?new Date(x.startsAt).toLocaleDateString():'—'}</td><td>${x.expiresAt?new Date(x.expiresAt).toLocaleDateString():'—'}</td><td>${esc(x.status)}</td><td>${new Date(x.createdAt).toLocaleString()}</td><td>${x.status==='PENDING'?`<button class="act success vip-action" data-id="${x.id}" data-decision="APPROVED">تفعيل</button> <button class="act danger vip-action" data-id="${x.id}" data-decision="REJECTED">رفض</button>`:'—'}</td></tr>`));
+    (data.items||[]).forEach(x=>tbody.insertAdjacentHTML('beforeend',`<tr><td>${esc(x.user?.name||'-')}<br><small>${esc(x.user?.email||'')}</small></td><td>$${(Number(x.priceCents||0)/100).toFixed(2)}</td><td>${esc(x.method||'-')}</td><td><b>${esc(x.transactionId||'-')}</b><br>${x.hasReceipt?`<button class="act vip-receipt" data-id="${x.id}">عرض الإثبات</button>`:'<small class="muted">بدون صورة</small>'}</td><td>${esc(x.status)}</td><td>${new Date(x.createdAt).toLocaleString()}</td><td>${x.status==='PENDING'?`<button class="act success vip-action" data-id="${x.id}" data-decision="APPROVED">تفعيل</button> <button class="act danger vip-action" data-id="${x.id}" data-decision="REJECTED">رفض</button>`:'—'}</td></tr>`));
     document.querySelectorAll('.vip-action').forEach(b=>b.onclick=async()=>{try{await api(`/admin/vip/subscriptions/${b.dataset.id}/action`,{method:'POST',body:{decision:b.dataset.decision}});toast('تم تحديث الطلب','success');loadVip();}catch(e){toast(e.message,'err');}});
     document.querySelectorAll('.vip-receipt').forEach(b=>b.onclick=()=>{const item=(data.items||[]).find(x=>String(x.id)===String(b.dataset.id));if(item)showPaymentReceipt(item, 'vip');});
     const select=document.getElementById('vipGrantUser');
@@ -1326,7 +1301,6 @@ document.getElementById('adAnalyticsDays')?.addEventListener('change', loadAdAna
 document.getElementById('adminCreate')?.addEventListener('click', createAdmin);
 document.getElementById('referralSettingsSave')?.addEventListener('click', saveReferralSettings);
 document.getElementById('appDownloadSave')?.addEventListener('click', saveAppDownloadUrl);
-document.getElementById('maintenanceSave')?.addEventListener('click', saveMaintenanceSettings);
 
 // ===== OFFERS =====
 // Convert API ISO dates to the browser's local datetime input and back.

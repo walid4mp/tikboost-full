@@ -15,7 +15,6 @@ enum UserRole {
   SUPER_ADMIN
   MODERATOR
   FINANCE
-  DEVELOPER
 }
 
 enum UserStatus {
@@ -105,8 +104,6 @@ enum AdType {
   REWARDED
   NATIVE
   CUSTOM_BANNER
-  APP_OPEN
-  REWARDED_INTERSTITIAL
 }
 
 model AdImpression {

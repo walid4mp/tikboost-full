@@ -204,10 +204,23 @@ class _LuckyWheelScreenState extends ConsumerState<LuckyWheelScreen> with Ticker
       return;
     }
 
+    final consent = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('إعلان مقابل لفة إضافية'),
+        content: const Text('يمكنك مشاهدة إعلان للحصول على لفة إضافية. يمكنك التخطي دون أي عقوبة.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('تخطي')),
+          FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('متابعة')),
+        ],
+      ),
+    );
+    if (consent != true || !mounted) return;
+
     setState(() => watchingExtraAd = true);
     try {
       final session = await RewardsRepository.instance.startExtraSpinAd();
-      final rewarded = await AdMobService.instance.showRewardedAd();
+      final rewarded = await AdMobService.instance.showRewardedAd(useAlternateUnit: true);
       if (!rewarded) {
         _showMessage('لم يكتمل الإعلان، لذلك لم تتم إضافة اللفة.');
         return;
