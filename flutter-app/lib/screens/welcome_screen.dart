@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart' hide Text;
 import '../i18n/tr_text.dart';
-import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../services/immersive_mode.dart';
 
 /// First-run welcome screen. The welcome artwork is shown only once per install;
 /// the buttons remain real Flutter controls layered over the artwork.
@@ -26,7 +27,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       // Continue even if preferences are temporarily unavailable.
     }
     if (!mounted) return;
-    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    ImmersiveMode.restore();
     if (!mounted) return;
     context.go(route);
   }
@@ -34,12 +35,12 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   @override
   void initState() {
     super.initState();
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    ImmersiveMode.enter(this);
   }
 
   @override
   void dispose() {
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    ImmersiveMode.leave(this);
     super.dispose();
   }
 

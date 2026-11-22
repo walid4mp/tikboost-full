@@ -115,19 +115,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       return;
     }
 
-    final consent = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('إعلان مقابل مكافأة'),
-        content: const Text('يمكنك مشاهدة إعلان للحصول على نقاط. يمكنك التخطي دون أي عقوبة.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('تخطي')),
-          FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('متابعة')),
-        ],
-      ),
-    );
-    if (consent != true || !mounted) return;
-
     setState(() => busy = true);
     try {
       final session = await RewardsRepository.instance.startDailyAd();

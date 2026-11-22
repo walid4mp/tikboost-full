@@ -31,8 +31,8 @@ class AppConfig {
   static String instagramUrl = '';
   static String facebookUrl = '';
   static String email = '';
-  static String privacyUrl = 'https://tikboost.app/privacy';
-  static String termsUrl = 'https://tikboost.app/terms';
+  static String privacyUrl = 'https://WHSTO.com/tikboost/privacy/';
+  static String termsUrl = 'https://WHSTO.com/tikboost/terms/';
   static String downloadUrl = '';
   static String logoUrl = '';
   static String iconUrl = '';

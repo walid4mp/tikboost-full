@@ -11,9 +11,9 @@ const DEFAULT_SETTINGS = {
     whatsapp: '213779109990',
     instagramUrl: 'https://www.instagram.com/wh.s.8',
     facebookUrl: 'https://www.facebook.com/profile.php?id=61570663858487',
-    privacyUrl: 'https://tikboost.app/privacy',
+    privacyUrl: 'https://WHSTO.com/tikboost/privacy/',
     downloadUrl: '',
-    termsUrl: 'https://tikboost.app/terms',
+    termsUrl: 'https://WHSTO.com/tikboost/terms/',
     logoUrl: '',
     iconUrl: '',
     splashImageUrl: '',
@@ -33,14 +33,10 @@ const DEFAULT_SETTINGS = {
     interstitialEnabled: true,
     rewardedEnabled: true,
     nativeEnabled: true,
-    bannerUnitId: 'ca-app-pub-5844737250635220/5064241834',
-    interstitialUnitId: 'ca-app-pub-5844737250635220/1209803484',
-    // These two units were created as Rewarded Interstitial, not standard Rewarded.
-    rewardedUnitId: 'ca-app-pub-5844737250635220/3250090571',
-    rewardedInterstitialUnitId: 'ca-app-pub-5844737250635220/3250090571',
-    rewardedInterstitialAltUnitId: 'ca-app-pub-5844737250635220/5688551653',
-    appOpenUnitId: 'ca-app-pub-5844737250635220/9850710830',
-    nativeUnitId: 'ca-app-pub-5844737250635220/3998572171',
+    bannerUnitId: 'ca-app-pub-3940256099942544/6300978111',
+    interstitialUnitId: 'ca-app-pub-3940256099942544/1033173712',
+    rewardedUnitId: 'ca-app-pub-3940256099942544/5224354917',
+    nativeUnitId: 'ca-app-pub-3940256099942544/2247696110',
     autoInterstitialEnabled: true,
     interstitialIntervalMinutes: 20,
     followMilestoneAdEnabled: true,
@@ -691,18 +687,10 @@ function normalizeSettings(input) {
   merged.ads.interstitialEnabled = normalizeBool(merged.ads.interstitialEnabled, DEFAULT_SETTINGS.ads.interstitialEnabled);
   merged.ads.rewardedEnabled = normalizeBool(merged.ads.rewardedEnabled, DEFAULT_SETTINGS.ads.rewardedEnabled);
   merged.ads.nativeEnabled = normalizeBool(merged.ads.nativeEnabled, DEFAULT_SETTINGS.ads.nativeEnabled);
-  const normalizeAdUnit = (value, fallback, testId) => {
-    const candidate = normalizeString(value, fallback);
-    // Replace only Google's well-known sample IDs; preserve any valid publisher ID.
-    return candidate === testId ? fallback : candidate;
-  };
-  merged.ads.bannerUnitId = normalizeAdUnit(merged.ads.bannerUnitId, DEFAULT_SETTINGS.ads.bannerUnitId, 'ca-app-pub-3940256099942544/6300978111');
-  merged.ads.interstitialUnitId = normalizeAdUnit(merged.ads.interstitialUnitId, DEFAULT_SETTINGS.ads.interstitialUnitId, 'ca-app-pub-3940256099942544/1033173712');
-  merged.ads.rewardedUnitId = normalizeAdUnit(merged.ads.rewardedUnitId, DEFAULT_SETTINGS.ads.rewardedUnitId, 'ca-app-pub-3940256099942544/5224354917');
-  merged.ads.rewardedInterstitialUnitId = normalizeAdUnit(merged.ads.rewardedInterstitialUnitId, DEFAULT_SETTINGS.ads.rewardedInterstitialUnitId, '');
-  merged.ads.rewardedInterstitialAltUnitId = normalizeAdUnit(merged.ads.rewardedInterstitialAltUnitId, DEFAULT_SETTINGS.ads.rewardedInterstitialAltUnitId, '');
-  merged.ads.appOpenUnitId = normalizeAdUnit(merged.ads.appOpenUnitId, DEFAULT_SETTINGS.ads.appOpenUnitId, '');
-  merged.ads.nativeUnitId = normalizeAdUnit(merged.ads.nativeUnitId, DEFAULT_SETTINGS.ads.nativeUnitId, 'ca-app-pub-3940256099942544/2247696110');
+  merged.ads.bannerUnitId = normalizeString(merged.ads.bannerUnitId, DEFAULT_SETTINGS.ads.bannerUnitId);
+  merged.ads.interstitialUnitId = normalizeString(merged.ads.interstitialUnitId, DEFAULT_SETTINGS.ads.interstitialUnitId);
+  merged.ads.rewardedUnitId = normalizeString(merged.ads.rewardedUnitId, DEFAULT_SETTINGS.ads.rewardedUnitId);
+  merged.ads.nativeUnitId = normalizeString(merged.ads.nativeUnitId, DEFAULT_SETTINGS.ads.nativeUnitId);
   merged.ads.autoInterstitialEnabled = normalizeBool(merged.ads.autoInterstitialEnabled, DEFAULT_SETTINGS.ads.autoInterstitialEnabled);
   merged.ads.interstitialIntervalMinutes = clampInt(merged.ads.interstitialIntervalMinutes, 1, 1440, DEFAULT_SETTINGS.ads.interstitialIntervalMinutes);
   merged.ads.followMilestoneAdEnabled = normalizeBool(merged.ads.followMilestoneAdEnabled, DEFAULT_SETTINGS.ads.followMilestoneAdEnabled);

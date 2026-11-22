@@ -16,21 +16,10 @@ class AdMobService {
       'ca-app-pub-3940256099942544/6300978111';
   static const String _fallbackNativeAdUnitId =
       'ca-app-pub-3940256099942544/2247696110';
-  // Google's official Rewarded Interstitial test unit (not standard Rewarded).
   static const String _fallbackRewardedAdUnitId =
-      'ca-app-pub-3940256099942544/5354046379';
+      'ca-app-pub-3940256099942544/5224354917';
   static const String _fallbackInterstitialAdUnitId =
       'ca-app-pub-3940256099942544/1033173712';
-  static const String _productionBannerAdUnitId =
-      'ca-app-pub-5844737250635220/5064241834';
-  static const String _productionNativeAdUnitId =
-      'ca-app-pub-5844737250635220/3998572171';
-  static const String _productionRewardedInterstitialAdUnitId =
-      'ca-app-pub-5844737250635220/3250090571';
-  static const String _productionRewardedInterstitialAltAdUnitId =
-      'ca-app-pub-5844737250635220/5688551653';
-  static const String _productionInterstitialAdUnitId =
-      'ca-app-pub-5844737250635220/1209803484';
 
   Map<String, dynamic> _adsConfig = const <String, dynamic>{};
   bool _adsSuppressed = false;
@@ -55,21 +44,11 @@ class AdMobService {
     try { await ApiClient.instance.dio.post('/user/ad-events', data: {'type': type, 'event': event}); } catch (_) {}
   }
 
-  String get bannerAdUnitId => kDebugMode
-      ? _fallbackBannerAdUnitId
-      : _stringValue('bannerUnitId', _productionBannerAdUnitId);
-  String get nativeAdUnitId => kDebugMode
-      ? _fallbackNativeAdUnitId
-      : _stringValue('nativeUnitId', _productionNativeAdUnitId);
-  String get rewardedAdUnitId => kDebugMode
-      ? _fallbackRewardedAdUnitId
-      : _stringValue('rewardedInterstitialUnitId', _productionRewardedInterstitialAdUnitId);
-  String get rewardedInterstitialAltAdUnitId => kDebugMode
-      ? _fallbackRewardedAdUnitId
-      : _stringValue('rewardedInterstitialAltUnitId', _productionRewardedInterstitialAltAdUnitId);
-  String get interstitialAdUnitId => kDebugMode
-      ? _fallbackInterstitialAdUnitId
-      : _stringValue('interstitialUnitId', _productionInterstitialAdUnitId);
+  String get bannerAdUnitId => _stringValue('bannerUnitId', _fallbackBannerAdUnitId);
+  String get nativeAdUnitId => _stringValue('nativeUnitId', _fallbackNativeAdUnitId);
+  String get rewardedAdUnitId => _stringValue('rewardedUnitId', _fallbackRewardedAdUnitId);
+  String get interstitialAdUnitId =>
+      _stringValue('interstitialUnitId', _fallbackInterstitialAdUnitId);
 
   Future<InitializationStatus> initialize() async {
     await _loadRemoteConfig();
@@ -132,7 +111,6 @@ class AdMobService {
         onAdLoaded: (_) { recordAdEvent('BANNER'); onLoaded?.call(); },
         onAdFailedToLoad: (ad, error) {
           ad.dispose();
-          debugPrint('[AdMob] Banner failed to load: $error');
           onFailed?.call(error);
         },
       ),
@@ -151,7 +129,6 @@ class AdMobService {
         onAdLoaded: (_) { recordAdEvent('NATIVE'); onLoaded?.call(); },
         onAdFailedToLoad: (ad, error) {
           ad.dispose();
-          debugPrint('[AdMob] Native failed to load: $error');
           onFailed?.call(error);
         },
       ),
@@ -179,8 +156,7 @@ class AdMobService {
           );
           ad.show();
         },
-        onAdFailedToLoad: (error) {
-          debugPrint('[AdMob] Interstitial failed to load: $error');
+        onAdFailedToLoad: (_) {
           if (!completer.isCompleted) completer.complete(false);
         },
       ),
@@ -188,13 +164,13 @@ class AdMobService {
     return completer.future;
   }
 
-  Future<bool> showRewardedAd({bool useAlternateUnit = false}) async {
+  Future<bool> showRewardedAd() async {
     if (!rewardedEnabled) return false;
     final completer = Completer<bool>();
-    RewardedInterstitialAd.load(
-      adUnitId: useAlternateUnit ? rewardedInterstitialAltAdUnitId : rewardedAdUnitId,
+    RewardedAd.load(
+      adUnitId: rewardedAdUnitId,
       request: const AdRequest(),
-      rewardedInterstitialAdLoadCallback: RewardedInterstitialAdLoadCallback(
+      rewardedAdLoadCallback: RewardedAdLoadCallback(
         onAdLoaded: (ad) {
           recordAdEvent('REWARDED');
           var rewarded = false;
@@ -215,8 +191,7 @@ class AdMobService {
             },
           );
         },
-        onAdFailedToLoad: (error) {
-          debugPrint('[AdMob] Rewarded interstitial failed to load: $error');
+        onAdFailedToLoad: (_) {
           if (!completer.isCompleted) completer.complete(false);
         },
       ),

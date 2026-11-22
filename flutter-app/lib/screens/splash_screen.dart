@@ -3,12 +3,12 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart' hide Text;
 import '../i18n/tr_text.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../providers/auth_provider.dart';
+import '../services/immersive_mode.dart';
 import '../services/push_notification_service.dart';
 
 /// Cinematic splash screen.
@@ -53,7 +53,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   @override
   void initState() {
     super.initState();
-    unawaited(SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky));
+    ImmersiveMode.enter(this);
 
     final reduceMotion = WidgetsBinding
         .instance.platformDispatcher.accessibilityFeatures.disableAnimations;
@@ -95,7 +95,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     if (!mounted || _navigated) return;
     _navigated = true;
     final auth = ref.read(authProvider).state;
-    unawaited(SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge));
 
     String target;
     if (auth.loggedIn) {
@@ -111,6 +110,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       target = welcomeSeen ? '/login' : '/welcome';
     }
     if (!mounted) return;
+    // The welcome artwork is also full-screen: keep immersive mode for it and
+    // restore the status bar only when entering the app or the login page.
+    if (target != '/welcome') ImmersiveMode.restore();
     context.go(target);
 
     if (auth.loggedIn) {
@@ -129,7 +131,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     _ambient.dispose();
     _finish.dispose();
     _exit.dispose();
-    unawaited(SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge));
+    ImmersiveMode.leave(this);
     super.dispose();
   }
 
