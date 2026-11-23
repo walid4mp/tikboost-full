@@ -28,6 +28,7 @@ class AppConfig {
   );
 
   static String whatsapp = '';
+  static String tiktokUrl = '';
   static String instagramUrl = '';
   static String facebookUrl = '';
   static String email = '';
@@ -69,6 +70,8 @@ class AppConfig {
   static String get whatsappDisplayValue {
     final raw = whatsapp.trim();
     if (raw.isEmpty) return '';
+    // WhatsApp Business "message" links are not phone numbers.
+    if (RegExp(r'wa\.me\/message\/', caseSensitive: false).hasMatch(raw)) return 'WhatsApp Business';
     final matched = RegExp(r'wa\.me\/(\d+)', caseSensitive: false).firstMatch(raw);
     if (matched != null) return matched.group(1) ?? raw;
     final digits = raw.replaceAll(RegExp(r'[^0-9]'), '');
@@ -114,6 +117,13 @@ class AppConfig {
             'value': whatsappDisplayValue,
             'enabled': true,
           },
+        if (tiktokUrl.trim().isNotEmpty)
+          {
+            'key': 'tiktok',
+            'label': 'TikTok',
+            'value': tiktokUrl.trim(),
+            'enabled': true,
+          },
         if (instagramUrl.trim().isNotEmpty)
           {
             'key': 'instagram',
@@ -152,6 +162,7 @@ class AppConfig {
     tagline = _text(app['tagline'], tagline);
     email = _text(app['supportEmail'], email);
     whatsapp = _text(app['whatsapp'], whatsapp);
+    tiktokUrl = _text(app['tiktokUrl'], tiktokUrl);
     instagramUrl = _text(app['instagramUrl'], instagramUrl);
     facebookUrl = _text(app['facebookUrl'], facebookUrl);
     privacyUrl = _text(app['privacyUrl'], privacyUrl);

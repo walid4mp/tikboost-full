@@ -954,6 +954,7 @@ async function loadRewardsAdmin() {
     document.getElementById('wheelMaxExtraSpins').value = wheel.maxExtraSpinsPerDay ?? 3;
     document.getElementById('wheelConfettiThreshold').value = wheel.confettiThreshold ?? 250;
     document.getElementById('contactWhatsapp').value = app.whatsapp || '';
+    document.getElementById('contactTiktok').value = app.tiktokUrl || '';
     document.getElementById('contactInstagram').value = app.instagramUrl || '';
     document.getElementById('contactFacebook').value = app.facebookUrl || '';
     document.getElementById('contactEmail').value = app.supportEmail || '';
@@ -1267,6 +1268,7 @@ async function saveContactSettings() {
       method: 'PUT',
       body: {
         whatsapp: document.getElementById('contactWhatsapp').value.trim(),
+        tiktokUrl: document.getElementById('contactTiktok').value.trim(),
         instagramUrl: document.getElementById('contactInstagram').value.trim(),
         facebookUrl: document.getElementById('contactFacebook').value.trim(),
         supportEmail: document.getElementById('contactEmail').value.trim(),

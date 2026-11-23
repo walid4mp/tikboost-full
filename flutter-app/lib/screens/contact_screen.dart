@@ -34,6 +34,16 @@ class ContactScreen extends StatelessWidget {
                 icon: Icons.chat_bubble_rounded,
                 color: const Color(0xFF25D366),
               );
+            case 'tiktok':
+              return _ContactItem(
+                key: key,
+                title: label.isEmpty ? 'TikTok' : label,
+                subtitle: value,
+                actionLabel: 'فتح الحساب',
+                url: value,
+                icon: Icons.music_note_rounded,
+                color: const Color(0xFF25F4EE),
+              );
             case 'instagram':
               return _ContactItem(
                 key: key,

@@ -8,9 +8,10 @@ const DEFAULT_SETTINGS = {
     name: env.APP_NAME || 'tikboost.wh',
     tagline: 'اكسب النقاط وروّج لحسابك بسهولة.',
     supportEmail: 'ww608352@gmail.com',
-    whatsapp: '213779109990',
-    instagramUrl: 'https://www.instagram.com/wh.s.8',
-    facebookUrl: 'https://www.facebook.com/profile.php?id=61570663858487',
+    whatsapp: 'https://wa.me/message/VT2BBC7YZ4LHP1',
+    tiktokUrl: 'https://www.tiktok.com/@whsto.official',
+    instagramUrl: 'https://www.instagram.com/whsto.official/',
+    facebookUrl: 'https://www.facebook.com/whsto.official',
     privacyUrl: 'https://WHSTO.com/tikboost/privacy/',
     downloadUrl: '',
     termsUrl: 'https://WHSTO.com/tikboost/terms/',
@@ -22,9 +23,10 @@ const DEFAULT_SETTINGS = {
     announcement: { enabled: false, level: 'info', text: '', textEn: '', textFr: '', url: '' },
     maintenance: { enabled: false, message: '', messageEn: '', messageFr: '' },
     contactLinks: [
-      { key: 'whatsapp', label: 'WhatsApp', value: '213779109990', enabled: true },
-      { key: 'instagram', label: 'Instagram', value: 'https://www.instagram.com/wh.s.8', enabled: true },
-      { key: 'facebook', label: 'Facebook', value: 'https://www.facebook.com/profile.php?id=61570663858487', enabled: true },
+      { key: 'whatsapp', label: 'WhatsApp', value: 'https://wa.me/message/VT2BBC7YZ4LHP1', enabled: true },
+      { key: 'tiktok', label: 'TikTok', value: 'https://www.tiktok.com/@whsto.official', enabled: true },
+      { key: 'instagram', label: 'Instagram', value: 'https://www.instagram.com/whsto.official/', enabled: true },
+      { key: 'facebook', label: 'Facebook', value: 'https://www.facebook.com/whsto.official', enabled: true },
       { key: 'email', label: 'Email', value: 'ww608352@gmail.com', enabled: true },
     ],
   },
@@ -483,6 +485,8 @@ function normalizeUrl(value, fallback = '') {
 function normalizeWhatsapp(value, fallback = '') {
   const text = normalizeString(value, fallback);
   if (!text) return '';
+  // WhatsApp Business "message" links (wa.me/message/XXXX) are not phone numbers: keep them whole.
+  if (/^https?:\/\/(wa\.me|api\.whatsapp\.com)\/(message\/|send)/i.test(text)) return text;
   const waMatch = text.match(/wa\.me\/(\d+)/i);
   if (waMatch?.[1]) return waMatch[1];
   const digits = text.replace(/\D/g, '');
@@ -496,12 +500,14 @@ function buildContactLinks(app = {}) {
   }
 
   const whatsapp = normalizeWhatsapp(app.whatsapp, DEFAULT_SETTINGS.app.whatsapp);
+  const tiktokUrl = normalizeUrl(app.tiktokUrl, DEFAULT_SETTINGS.app.tiktokUrl);
   const instagramUrl = normalizeUrl(app.instagramUrl, DEFAULT_SETTINGS.app.instagramUrl);
   const facebookUrl = normalizeUrl(app.facebookUrl, DEFAULT_SETTINGS.app.facebookUrl);
   const supportEmail = normalizeString(app.supportEmail, DEFAULT_SETTINGS.app.supportEmail);
 
   return normalizeContactLinks([
     { key: 'whatsapp', label: 'WhatsApp', value: whatsapp, enabled: whatsapp.length > 0 },
+    { key: 'tiktok', label: 'TikTok', value: tiktokUrl, enabled: tiktokUrl.length > 0 },
     { key: 'instagram', label: 'Instagram', value: instagramUrl, enabled: instagramUrl.length > 0 },
     { key: 'facebook', label: 'Facebook', value: facebookUrl, enabled: facebookUrl.length > 0 },
     { key: 'email', label: 'Email', value: supportEmail, enabled: supportEmail.length > 0 },
@@ -653,6 +659,7 @@ function normalizeSettings(input) {
   merged.app.tagline = normalizeString(merged.app.tagline, DEFAULT_SETTINGS.app.tagline);
   merged.app.supportEmail = normalizeString(merged.app.supportEmail, DEFAULT_SETTINGS.app.supportEmail);
   merged.app.whatsapp = normalizeWhatsapp(merged.app.whatsapp, DEFAULT_SETTINGS.app.whatsapp);
+  merged.app.tiktokUrl = normalizeUrl(merged.app.tiktokUrl, DEFAULT_SETTINGS.app.tiktokUrl);
   merged.app.instagramUrl = normalizeUrl(merged.app.instagramUrl, DEFAULT_SETTINGS.app.instagramUrl);
   merged.app.facebookUrl = normalizeUrl(merged.app.facebookUrl, DEFAULT_SETTINGS.app.facebookUrl);
   merged.app.privacyUrl = normalizeString(merged.app.privacyUrl, DEFAULT_SETTINGS.app.privacyUrl);

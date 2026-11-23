@@ -104,11 +104,12 @@ test('smoke-test rewards, wheel and public config APIs', async () => {
   assert.ok(clientConfig.body.config.rewards);
   assert.ok(clientConfig.body.config.wheel);
   assert.equal(clientConfig.body.config.app.supportEmail, 'ww608352@gmail.com');
-  assert.equal(clientConfig.body.config.app.whatsapp, '213779109990');
-  assert.equal(clientConfig.body.config.app.instagramUrl, 'https://www.instagram.com/wh.s.8');
-  assert.equal(clientConfig.body.config.app.facebookUrl, 'https://www.facebook.com/profile.php?id=61570663858487');
+  assert.equal(clientConfig.body.config.app.whatsapp, 'https://wa.me/message/VT2BBC7YZ4LHP1');
+  assert.equal(clientConfig.body.config.app.tiktokUrl, 'https://www.tiktok.com/@whsto.official');
+  assert.equal(clientConfig.body.config.app.instagramUrl, 'https://www.instagram.com/whsto.official/');
+  assert.equal(clientConfig.body.config.app.facebookUrl, 'https://www.facebook.com/whsto.official');
   assert.deepEqual(
     clientConfig.body.config.app.contactLinks.map((item) => item.key),
-    ['whatsapp', 'instagram', 'facebook', 'email'],
+    ['whatsapp', 'tiktok', 'instagram', 'facebook', 'email'],
   );
 });

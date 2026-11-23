@@ -25,7 +25,8 @@
     "test": "DOTENV_CONFIG_PATH=.env.test node -r dotenv/config --test --test-concurrency=1 test/*.test.js",
     "test:ci": "npm run test:prepare && npm test",
     "test:offline": "node test/gamification.offline.test.js",
-    "upgrade:gamification": "node src/scripts/upgrade-gamification-defaults.js"
+    "upgrade:gamification": "node src/scripts/upgrade-gamification-defaults.js",
+    "update:contacts": "node src/scripts/update-contact-links.js"
   },
   "prisma": {
     "seed": "npm run seed"
